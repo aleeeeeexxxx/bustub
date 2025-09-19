@@ -33,13 +33,12 @@ CountMinSketch<KeyType>::CountMinSketch(uint32_t width, uint32_t depth) : width_
   }
 
   sketch_matrix_.resize(depth_);
-  for (auto& row : sketch_matrix_) {
+  for (auto &row : sketch_matrix_) {
     row.reserve(width_);
     for (uint32_t j = 0; j < width_; j++) {
       row.emplace_back(std::make_shared<std::atomic_uint32_t>(0));
     }
   }
-
 
   /** @fall2025 PLEASE DO NOT MODIFY THE FOLLOWING */
   // Initialize seeded hash functions
