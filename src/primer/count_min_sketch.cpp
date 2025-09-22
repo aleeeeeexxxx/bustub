@@ -74,12 +74,10 @@ auto CountMinSketch<KeyType>::operator=(CountMinSketch &&other) noexcept -> Coun
 
 template <typename KeyType>
 void CountMinSketch<KeyType>::Insert(const KeyType &item) {
-  for (auto &hash_fn : hash_functions_) {
+  for (uint32_t i = 0; i < depth_; i++) {
+    auto hash_fn = hash_functions_[i];
     uint32_t idx = hash_fn(item) % width_;
-    // Increment the count in the sketch matrix
-    // Note: This is a simple implementation and does not handle overflow
-    // In a production system, you might want to handle this case
-    sketch_matrix_[&hash_fn - &hash_functions_[0]][idx]->fetch_add(1, std::memory_order_relaxed);
+    sketch_matrix_[i][idx]->fetch_add(1, std::memory_order_relaxed);
   }
 }
 
