@@ -87,8 +87,8 @@ class ArcReplacer {
 
   // TODO(student): You can add member variables / functions as you like.
   void IncreateTargetSize(int delta) {
-    auto new_size = int(mru_target_size_) + delta;
-    new_size = std::min(new_size, int(replacer_size_));
+    auto new_size = static_cast<int>(mru_target_size_) + delta;
+    new_size = std::min(new_size, static_cast<int>(replacer_size_));
     new_size = std::max(new_size, 0);
     mru_target_size_ = new_size;
   }

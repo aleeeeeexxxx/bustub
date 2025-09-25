@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <vector>
+
 #include "buffer/arc_replacer.h"
 #include "common/config.h"
 
