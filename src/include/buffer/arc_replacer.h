@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
@@ -77,14 +78,20 @@ class ArcReplacer {
   std::unordered_map<page_id_t, std::shared_ptr<FrameStatus>> ghost_map_;
 
   /* alive, evictable entries count */
-  [[maybe_unused]] size_t curr_size_{0};
+  size_t curr_size_{0};
   /* p as in original paper */
-  [[maybe_unused]] size_t mru_target_size_{0};
+  size_t mru_target_size_{0};
   /* c as in original paper */
-  [[maybe_unused]] size_t replacer_size_;
+  size_t replacer_size_;
   std::mutex latch_;
 
   // TODO(student): You can add member variables / functions as you like.
+  void IncreateTargetSize(int delta) {
+    auto new_size = int(mru_target_size_) + delta;
+    new_size = std::min(new_size, int(replacer_size_));
+    new_size = std::max(new_size, 0);
+    mru_target_size_ = new_size;
+  }
 };
 
 }  // namespace bustub
