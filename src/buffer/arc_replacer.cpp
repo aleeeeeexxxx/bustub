@@ -12,10 +12,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "buffer/arc_replacer.h"
-#include <memory>
-#include <mutex>
-#include <optional>
-#include <vector>
 #include "common/config.h"
 
 namespace bustub {
