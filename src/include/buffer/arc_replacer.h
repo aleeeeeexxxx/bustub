@@ -29,7 +29,6 @@ enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 
 enum class ArcStatus { MRU, MFU, MRU_GHOST, MFU_GHOST };
 
-// TODO(student): You can modify or remove this struct as you like.
 struct FrameStatus {
   page_id_t page_id_;
   frame_id_t frame_id_;
@@ -49,7 +48,6 @@ class ArcReplacer {
   DISALLOW_COPY_AND_MOVE(ArcReplacer);
 
   /**
-   * TODO(P1): Add implementation
    *
    * @brief Destroys the LRUReplacer.
    */
@@ -85,13 +83,12 @@ class ArcReplacer {
   size_t replacer_size_;
   std::mutex latch_;
 
-  // TODO(student): You can add member variables / functions as you like.
-  void IncreateTargetSize(int delta) {
-    auto new_size = static_cast<int>(mru_target_size_) + delta;
-    new_size = std::min(new_size, static_cast<int>(replacer_size_));
-    new_size = std::max(new_size, 0);
-    mru_target_size_ = new_size;
-  }
+  auto GetVictim() -> std::shared_ptr<FrameStatus>;
+  void MoveVictimToGhost(std::shared_ptr<FrameStatus> victim);
+  void IncreateTargetSize(int delta);
+  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, std::shared_ptr<FrameStatus> frame);
+  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, std::shared_ptr<FrameStatus> frame);
+  void RecordAccessNew(frame_id_t frame_id, page_id_t page_id);
 };
 
 }  // namespace bustub
