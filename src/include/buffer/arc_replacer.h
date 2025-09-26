@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
@@ -28,7 +29,6 @@ enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 
 enum class ArcStatus { MRU, MFU, MRU_GHOST, MFU_GHOST };
 
-// TODO(student): You can modify or remove this struct as you like.
 struct FrameStatus {
   page_id_t page_id_;
   frame_id_t frame_id_;
@@ -48,7 +48,6 @@ class ArcReplacer {
   DISALLOW_COPY_AND_MOVE(ArcReplacer);
 
   /**
-   * TODO(P1): Add implementation
    *
    * @brief Destroys the LRUReplacer.
    */
@@ -77,14 +76,19 @@ class ArcReplacer {
   std::unordered_map<page_id_t, std::shared_ptr<FrameStatus>> ghost_map_;
 
   /* alive, evictable entries count */
-  [[maybe_unused]] size_t curr_size_{0};
+  size_t curr_size_{0};
   /* p as in original paper */
-  [[maybe_unused]] size_t mru_target_size_{0};
+  size_t mru_target_size_{0};
   /* c as in original paper */
-  [[maybe_unused]] size_t replacer_size_;
+  size_t replacer_size_;
   std::mutex latch_;
 
-  // TODO(student): You can add member variables / functions as you like.
+  auto GetVictim() -> std::shared_ptr<FrameStatus>;
+  void MoveVictimToGhost(const std::shared_ptr<FrameStatus> &victim);
+  void IncreaseTargetSize(int delta);
+  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
+  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
+  void RecordAccessNew(frame_id_t frame_id, page_id_t page_id);
 };
 
 }  // namespace bustub
