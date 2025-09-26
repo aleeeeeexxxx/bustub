@@ -193,7 +193,7 @@ auto ArcReplacer::GetVictim() -> std::shared_ptr<FrameStatus> {
   throw std::logic_error("ArcReplacer::Evict(): no evictable frame found");
 }
 
-void ArcReplacer::MoveVictimToGhost(std::shared_ptr<FrameStatus> victim) {
+void ArcReplacer::MoveVictimToGhost(const std::shared_ptr<FrameStatus> &victim) {
   alive_map_.erase(victim->frame_id_);
   if (victim->arc_status_ == ArcStatus::MRU) {
     victim->arc_status_ = ArcStatus::MRU_GHOST;
@@ -205,7 +205,7 @@ void ArcReplacer::MoveVictimToGhost(std::shared_ptr<FrameStatus> victim) {
   ghost_map_[victim->page_id_] = victim;
 }
 
-void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, std::shared_ptr<FrameStatus> frame) {
+void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame) {
   assert(frame->page_id_ == page_id);
 
   if (frame->arc_status_ == ArcStatus::MFU) {
@@ -220,28 +220,28 @@ void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, std:
   mfu_.push_front(frame_id);
 }
 
-void ArcReplacer::IncreateTargetSize(int delta) {
+void ArcReplacer::IncreaseTargetSize(int delta) {
   auto new_size = static_cast<int>(mru_target_size_) + delta;
   new_size = std::min(new_size, static_cast<int>(replacer_size_));
   new_size = std::max(new_size, 0);
   mru_target_size_ = new_size;
 }
 
-void ArcReplacer::RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, std::shared_ptr<FrameStatus> frame) {
+void ArcReplacer::RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame) {
   if (frame->arc_status_ == ArcStatus::MRU_GHOST) {
     // case 3: hit mru_ghost_, move to the front of mfu_, increase target size
     if (mru_ghost_.size() >= mfu_ghost_.size()) {
-      IncreateTargetSize(1);
+      IncreaseTargetSize(1);
     } else {
-      IncreateTargetSize(mfu_ghost_.size() / mru_ghost_.size());
+      IncreaseTargetSize(mfu_ghost_.size() / mru_ghost_.size());
     }
     mru_ghost_.remove(page_id);
   } else {
     // case 4: hit mfu_ghost_, move to the front of mfu_, decrease target size
     if (mfu_ghost_.size() >= mru_ghost_.size()) {
-      IncreateTargetSize(-1);
+      IncreaseTargetSize(-1);
     } else {
-      IncreateTargetSize(-1 * mru_ghost_.size() / mfu_ghost_.size());
+      IncreaseTargetSize(-1 * mru_ghost_.size() / mfu_ghost_.size());
     }
     mfu_ghost_.remove(page_id);
   }
