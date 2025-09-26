@@ -84,10 +84,10 @@ class ArcReplacer {
   std::mutex latch_;
 
   auto GetVictim() -> std::shared_ptr<FrameStatus>;
-  void MoveVictimToGhost(const std::shared_ptr<FrameStatus>& victim);
+  void MoveVictimToGhost(const std::shared_ptr<FrameStatus> &victim);
   void IncreaseTargetSize(int delta);
-  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus>& frame);
-  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus>& frame);
+  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
+  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
   void RecordAccessNew(frame_id_t frame_id, page_id_t page_id);
 };
 
