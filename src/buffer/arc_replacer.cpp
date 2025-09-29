@@ -221,10 +221,21 @@ void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, cons
 }
 
 void ArcReplacer::IncreaseTargetSize(int delta) {
-  auto new_size = static_cast<int>(mru_target_size_) + delta;
-  new_size = std::min(new_size, static_cast<int>(replacer_size_));
-  new_size = std::max(new_size, 0);
-  mru_target_size_ = new_size;
+  if (delta >= 0) {
+    size_t inc = static_cast<size_t>(delta);
+    if (replacer_size_ - mru_target_size_ < inc) {
+      mru_target_size_ = replacer_size_;
+    } else {
+      mru_target_size_ += inc;
+    }
+  } else {
+    size_t dec = static_cast<size_t>(-delta);
+    if (mru_target_size_ < dec) {
+      mru_target_size_ = 0;
+    } else {
+      mru_target_size_ -= dec;
+    }
+  }
 }
 
 void ArcReplacer::RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame) {
