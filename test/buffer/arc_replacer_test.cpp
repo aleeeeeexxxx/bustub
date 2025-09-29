@@ -20,7 +20,7 @@
 
 namespace bustub {
 
-TEST(ArcReplacerTest, DISABLED_SampleTest) {
+TEST(ArcReplacerTest, SampleTest) {
   // for the sake of simplicity
   // we use (a, fb) to notate page a on frame b,
   // (a, _) to mark ghost page with page id a
@@ -102,7 +102,7 @@ TEST(ArcReplacerTest, DISABLED_SampleTest) {
   ASSERT_EQ(2, arc_replacer.Evict());
 }
 
-TEST(ArcReplacerTest, DISABLED_SampleTest2) {
+TEST(ArcReplacerTest, SampleTest2) {
   // Test a smaller capacity
   ArcReplacer arc_replacer(3);
   // Fill up the replacer
