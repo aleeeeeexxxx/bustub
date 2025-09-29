@@ -60,20 +60,22 @@ class ArcReplacer {
   auto Size() -> size_t;
 
  private:
-  // TODO(student): implement me! You can replace or remove these member variables as you like.
-  std::list<frame_id_t> mru_;
-  std::list<frame_id_t> mfu_;
-  std::list<page_id_t> mru_ghost_;
-  std::list<page_id_t> mfu_ghost_;
+  typedef std::list<std::shared_ptr<FrameStatus>> FrameList;
+  typedef FrameList::iterator FrameListIter;
+
+  FrameList mru_;
+  FrameList mfu_;
+  FrameList mru_ghost_;
+  FrameList mfu_ghost_;
 
   /* record entries in mru_ and mfu_
    * this uses frame_id_t to guarantee no duplicate records for the same
    * frame when they are alive */
-  std::unordered_map<frame_id_t, std::shared_ptr<FrameStatus>> alive_map_;
+  std::unordered_map<frame_id_t, FrameListIter> alive_map_;
   /* record entries in mru_ghost_ and mfu_ghost_
    * this uses page_id_t but not frame_id_t because page_id is the unique
    * identifier in ghost lists */
-  std::unordered_map<page_id_t, std::shared_ptr<FrameStatus>> ghost_map_;
+  std::unordered_map<page_id_t, FrameListIter> ghost_map_;
 
   /* alive, evictable entries count */
   size_t curr_size_{0};
@@ -83,11 +85,11 @@ class ArcReplacer {
   size_t replacer_size_;
   std::mutex latch_;
 
-  auto GetVictim() -> std::shared_ptr<FrameStatus>;
-  void MoveVictimToGhost(const std::shared_ptr<FrameStatus> &victim);
+  auto GetVictim() -> FrameListIter;
+  auto MoveVictimToGhost(FrameListIter &victim_itr) -> frame_id_t;
   void IncreaseTargetSize(int delta);
-  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
-  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, const std::shared_ptr<FrameStatus> &frame);
+  void RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, FrameListIter &frame_itr);
+  void RecordAccessGhost(frame_id_t frame_id, page_id_t page_id, FrameListIter &frame_itr);
   void RecordAccessNew(frame_id_t frame_id, page_id_t page_id);
 };
 
