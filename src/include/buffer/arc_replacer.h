@@ -60,8 +60,8 @@ class ArcReplacer {
   auto Size() -> size_t;
 
  private:
-  typedef std::list<std::shared_ptr<FrameStatus>> FrameList;
-  typedef FrameList::iterator FrameListIter;
+  using FrameList = std::list<std::shared_ptr<FrameStatus>>;
+  using FrameListIter = FrameList::iterator;
 
   FrameList mru_;
   FrameList mfu_;
