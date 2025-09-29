@@ -229,14 +229,14 @@ void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, Fram
 
 void ArcReplacer::IncreaseTargetSize(int delta) {
   if (delta >= 0) {
-    size_t inc = static_cast<size_t>(delta);
+    auto inc = static_cast<size_t>(delta);
     if (replacer_size_ - mru_target_size_ < inc) {
       mru_target_size_ = replacer_size_;
     } else {
       mru_target_size_ += inc;
     }
   } else {
-    size_t dec = static_cast<size_t>(-delta);
+    auto dec = static_cast<size_t>(-delta);
     if (mru_target_size_ < dec) {
       mru_target_size_ = 0;
     } else {

@@ -13,7 +13,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
