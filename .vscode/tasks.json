@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build_test",
+      "type": "shell",
+      "command": "make -j$(nproc) ${fileBasenameNoExtension}",
+      "group": "build",
+      "problemMatcher": ["$gcc", "$clang"],
+      "detail": "CMake Build Task",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      }
+    }
+  ]
+}
