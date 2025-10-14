@@ -58,6 +58,7 @@ class WritePageGuard;
  */
 class FrameHeader {
   friend class BufferPoolManager;
+  friend class PageGuard;
   friend class ReadPageGuard;
   friend class WritePageGuard;
 
@@ -88,13 +89,14 @@ class FrameHeader {
    */
   std::vector<char> data_;
 
-  /**
-   * TODO(P1): You may add any fields or helper functions under here that you think are necessary.
-   *
-   * One potential optimization you could make is storing an optional page ID of the page that the `FrameHeader` is
-   * currently storing. This might allow you to skip searching for the corresponding (page ID, frame ID) pair somewhere
-   * else in the buffer pool manager...
-   */
+  /** @brief A flag to ensure the frame is initialized only once. */
+  std::unique_ptr<std::once_flag> flag_;
+
+  /** @brief The ID of the page that is currently stored in this frame. */
+  page_id_t page_id_;
+
+  void ResetFlag() { flag_ = std::make_unique<std::once_flag>(); }
+  void IncreasePinCount() { pin_count_++; }
 };
 
 /**
@@ -115,8 +117,8 @@ class BufferPoolManager {
   auto Size() const -> size_t;
   auto NewPage() -> page_id_t;
   auto DeletePage(page_id_t page_id) -> bool;
-  auto CheckedWritePage(page_id_t page_id, AccessType access_type = AccessType::Unknown)
-      -> std::optional<WritePageGuard>;
+  auto CheckedWritePage(page_id_t page_id,
+                        AccessType access_type = AccessType::Unknown) -> std::optional<WritePageGuard>;
   auto CheckedReadPage(page_id_t page_id, AccessType access_type = AccessType::Unknown) -> std::optional<ReadPageGuard>;
   auto WritePage(page_id_t page_id, AccessType access_type = AccessType::Unknown) -> WritePageGuard;
   auto ReadPage(page_id_t page_id, AccessType access_type = AccessType::Unknown) -> ReadPageGuard;
@@ -171,5 +173,9 @@ class BufferPoolManager {
    * stored inside of it. Additionally, you may also want to implement a helper function that returns either a shared
    * pointer to a `FrameHeader` that already has a page's data stored inside of it, or an index to said `FrameHeader`.
    */
+
+  auto GetOrBindFrame(page_id_t page_id) -> std::optional<std::shared_ptr<FrameHeader>>;
+  void InitFrame(std::shared_ptr<FrameHeader> frame, page_id_t page_id);
+  void RefreshPage(std::shared_ptr<FrameHeader> frame, bool write);
 };
 }  // namespace bustub
