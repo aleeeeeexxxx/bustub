@@ -42,15 +42,13 @@ PageGuard::PageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> frame, std:
  * @brief The move constructor for `PageGuard`.
  *
  */
-PageGuard::PageGuard(PageGuard &&that)  {
-  MoveFrom(std::move(that));
-}
+PageGuard::PageGuard(PageGuard &&that) { MoveFrom(std::move(that)); }
 
 /**
  * @brief The move assignment operator for `PageGuard`.
  *
  */
-auto PageGuard::operator=(PageGuard &&that)  -> PageGuard & {
+auto PageGuard::operator=(PageGuard &&that) -> PageGuard & {
   MoveFrom(std::move(that));
   return *this;
 }
