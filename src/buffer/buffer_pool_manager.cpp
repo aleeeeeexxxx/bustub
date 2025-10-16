@@ -182,7 +182,7 @@ void BufferPoolManager::InitFrame(const std::shared_ptr<FrameHeader> &frame, pag
   RefreshPage(frame, false);
 }
 
-void BufferPoolManager::RefreshPage(const std::shared_ptr<FrameHeader>& frame, bool write) {
+void BufferPoolManager::RefreshPage(const std::shared_ptr<FrameHeader> &frame, bool write) {
   if (write && !frame->is_dirty_) {
     return;
   }
