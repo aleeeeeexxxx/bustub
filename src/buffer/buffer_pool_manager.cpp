@@ -150,7 +150,25 @@ auto BufferPoolManager::NewPage() -> page_id_t { return next_page_id_++; }
  * @param page_id The page ID of the page we want to delete.
  * @return `false` if the page exists but could not be deleted, `true` if the page didn't exist or deletion succeeded.
  */
-auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool { UNIMPLEMENTED("TODO(P1): Add implementation."); }
+auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
+  std::lock_guard<std::mutex> lock(*bpm_latch_);
+
+  auto itr = page_table_.find(page_id);
+  if (itr != page_table_.end()) {
+    auto frame = frames_.at(itr->second);
+    auto cnt = frame->pin_count_.load();
+    if (cnt > 0) {
+      return false;
+    }
+
+    page_table_.erase(itr);
+    frame->Reset();
+    free_frames_.push_back(frame->frame_id_);
+  }
+
+  disk_scheduler_->DeallocatePage(page_id);
+  return true;
+}
 
 void BufferPoolManager::InitFrame(std::shared_ptr<FrameHeader> frame, page_id_t page_id) {
   // flush old page if dirty

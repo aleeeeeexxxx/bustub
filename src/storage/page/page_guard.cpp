@@ -124,16 +124,16 @@ void PageGuard::Drop() {
   }
 
   is_valid_ = false;
-  frame_->pin_count_--;
-
-  if (frame_->pin_count_ == 0) {
-    replacer_->SetEvictable(frame_->frame_id_, true);
-  }
 
   if (shared_) {
     frame_->rwlatch_.unlock_shared();
   } else {
     frame_->rwlatch_.unlock();
+  }
+
+  frame_->pin_count_--;
+  if (frame_->pin_count_ == 0) {
+    replacer_->SetEvictable(frame_->frame_id_, true);
   }
 }
 
