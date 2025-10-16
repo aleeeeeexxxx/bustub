@@ -16,6 +16,7 @@
 
 #include "buffer/arc_replacer.h"
 #include "common/config.h"
+#include "common/macros.h"
 
 namespace bustub {
 
@@ -128,7 +129,6 @@ void ArcReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   if (frame_itr == alive_map_.end()) {
     throw std::runtime_error("SetEvictable: frame_id not found");
   }
-
   auto frame = *(frame_itr->second);
 
   if (frame->evictable_ != set_evictable) {
@@ -212,7 +212,8 @@ auto ArcReplacer::MoveVictimToGhost(FrameListIter &victim_itr) -> frame_id_t {
 
 void ArcReplacer::RecordAccessAlive(frame_id_t frame_id, page_id_t page_id, FrameListIter &frame_itr) {
   auto frame = *frame_itr;
-  assert(frame->page_id_ == page_id);
+  BUSTUB_ENSURE(frame->page_id_ == page_id,
+                "page_id mismatch: " + std::to_string(frame->page_id_) + " vs " + std::to_string(page_id));
 
   if (frame->arc_status_ == ArcStatus::MFU) {
     // case 1: hit mru_ , move to the front of mfu_
