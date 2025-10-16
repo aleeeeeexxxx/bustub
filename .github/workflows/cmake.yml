@@ -1,4 +1,4 @@
-name: CMake Build Ubuntu
+name: Bustub Test
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   BUILD_TYPE: Debug
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -48,6 +48,30 @@ jobs:
       - name: Check Clang Tidy
         working-directory: ${{ github.workspace }}/build
         run: make check-clang-tidy
+  
+  unit-test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Print GitHub Event
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
+
+      - name: Install Dependencies
+        run: sudo bash ./build_support/packages.sh -y
+
+      - name: Configure CMake
+        run: |
+          CC=/usr/bin/gcc \
+          CXX=/usr/bin/g++ \
+          cmake -B ${{ github.workspace }}/build \
+                -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+                -DCLANG_FORMAT_BIN=/usr/bin/clang-format-15 \
+                -DCLANG_TIDY_BIN=/usr/bin/clang-tidy-15
 
       - name: Check Tests
         working-directory: ${{ github.workspace }}/build
