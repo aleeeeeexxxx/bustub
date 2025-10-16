@@ -12,6 +12,7 @@
 
 #include "storage/page/page_guard.h"
 #include <memory>
+#include <utility>
 #include "buffer/arc_replacer.h"
 #include "common/macros.h"
 
@@ -42,13 +43,13 @@ PageGuard::PageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> frame, std:
  * @brief The move constructor for `PageGuard`.
  *
  */
-PageGuard::PageGuard(PageGuard &&that) { MoveFrom(std::move(that)); }
+PageGuard::PageGuard(PageGuard &&that) noexcept { MoveFrom(std::move(that)); }
 
 /**
  * @brief The move assignment operator for `PageGuard`.
  *
  */
-auto PageGuard::operator=(PageGuard &&that) -> PageGuard & {
+auto PageGuard::operator=(PageGuard &&that) noexcept -> PageGuard & {
   MoveFrom(std::move(that));
   return *this;
 }
@@ -143,12 +144,14 @@ PageGuard::~PageGuard() { Drop(); }
 ReadPageGuard::ReadPageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> frame,
                              std::shared_ptr<ArcReplacer> replacer, std::shared_ptr<std::mutex> bpm_latch,
                              std::shared_ptr<DiskScheduler> disk_scheduler)
-    : PageGuard(page_id, frame, replacer, bpm_latch, disk_scheduler, true) {}
+    : PageGuard(page_id, std::move(frame), std::move(replacer), std::move(bpm_latch), std::move(disk_scheduler), true) {
+}
 
 WritePageGuard::WritePageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> frame,
                                std::shared_ptr<ArcReplacer> replacer, std::shared_ptr<std::mutex> bpm_latch,
                                std::shared_ptr<DiskScheduler> disk_scheduler)
-    : PageGuard(page_id, frame, replacer, bpm_latch, disk_scheduler, false) {
+    : PageGuard(page_id, std::move(frame), std::move(replacer), std::move(bpm_latch), std::move(disk_scheduler),
+                false) {
   frame_->is_dirty_ = true;
 }
 

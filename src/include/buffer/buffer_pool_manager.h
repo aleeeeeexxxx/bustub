@@ -175,7 +175,7 @@ class BufferPoolManager {
    */
 
   auto GetOrBindFrame(page_id_t page_id) -> std::optional<std::shared_ptr<FrameHeader>>;
-  void InitFrame(std::shared_ptr<FrameHeader> frame, page_id_t page_id);
+  void InitFrame(const std::shared_ptr<FrameHeader> &frame, page_id_t page_id);
   void RefreshPage(std::shared_ptr<FrameHeader> frame, bool write);
 };
 }  // namespace bustub

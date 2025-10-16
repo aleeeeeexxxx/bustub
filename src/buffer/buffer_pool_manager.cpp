@@ -170,7 +170,7 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
   return true;
 }
 
-void BufferPoolManager::InitFrame(std::shared_ptr<FrameHeader> frame, page_id_t page_id) {
+void BufferPoolManager::InitFrame(const std::shared_ptr<FrameHeader> &frame, page_id_t page_id) {
   // flush old page if dirty
   RefreshPage(frame, true);
 

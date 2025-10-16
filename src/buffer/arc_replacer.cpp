@@ -129,7 +129,6 @@ void ArcReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   if (frame_itr == alive_map_.end()) {
     throw std::runtime_error("SetEvictable: frame_id not found");
   }
-
   auto frame = *(frame_itr->second);
 
   if (frame->evictable_ != set_evictable) {

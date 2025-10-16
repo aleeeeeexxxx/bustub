@@ -31,8 +31,8 @@ class PageGuard {
             std::shared_ptr<std::mutex> bpm_latch, std::shared_ptr<DiskScheduler> disk_scheduler, bool shared);
   PageGuard(const PageGuard &) = delete;
   auto operator=(const PageGuard &) -> PageGuard & = delete;
-  PageGuard(PageGuard &&that);
-  auto operator=(PageGuard &&that) -> PageGuard &;
+  PageGuard(PageGuard &&that) noexcept;
+  auto operator=(PageGuard &&that) noexcept -> PageGuard &;
 
   ~PageGuard();
 
