@@ -15,6 +15,7 @@
 #include <queue>
 #include <string>
 
+#include "common/config.h"
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
@@ -95,6 +96,11 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   KeyType key_array_[INTERNAL_PAGE_SLOT_CNT];
   ValueType page_id_array_[INTERNAL_PAGE_SLOT_CNT];
   // (Spring 2025) Feel free to add more fields and helper functions below if needed
+public:
+  auto Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType;
+  auto IsFull() const -> bool;
+  auto Split(BPlusTreeInternalPage *new_internal_page) -> KeyType;
+  auto Insert(const KeyType &key, const page_id_t value, const KeyComparator &comparator) -> void;
 };
 
 }  // namespace bustub

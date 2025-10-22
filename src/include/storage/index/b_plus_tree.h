@@ -31,6 +31,7 @@
 #include <queue>
 #include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "common/config.h"
@@ -44,6 +45,13 @@
 namespace bustub {
 
 struct PrintableBPlusTree;
+
+template <typename KeyType>
+struct BPlusTreeInsertResult {
+  bool success;
+  page_id_t split_page_id = INVALID_PAGE_ID;
+  KeyType start_key;
+};
 
 /**
  * @brief Definition of the Context class.
@@ -76,6 +84,7 @@ FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
 class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+  using InsertResult = BPlusTreeInsertResult<KeyType>;
 
  public:
   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
@@ -135,6 +144,13 @@ class BPlusTree {
   int leaf_max_size_;
   int internal_max_size_;
   page_id_t header_page_id_;
+
+ private:
+  auto Insert(const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result) -> void;
+  auto InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page, InsertResult &result) -> void;
+  auto InsertIntoPage(const KeyType &key, page_id_t value, InternalPage *page, InsertResult &result) -> void;
+  auto CreateNewLeafPage() -> std::pair<page_id_t, LeafPage *>;
+  auto CreateNewInternalPage() -> std::pair<page_id_t, InternalPage *>;
 };
 
 /**

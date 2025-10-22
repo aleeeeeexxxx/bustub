@@ -12,6 +12,7 @@
 
 #include "storage/index/b_plus_tree.h"
 #include "buffer/traced_buffer_pool_manager.h"
+#include "common/config.h"
 #include "storage/index/b_plus_tree_debug.h"
 
 namespace bustub {
@@ -72,9 +73,109 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
-  // Declaration of context instance. Using the Context is not necessary but advised.
-  Context ctx;
+  InsertResult result;
+  Insert(key, value, GetRootPageId(), result);
+  return result.success;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_t page_id,
+                            InsertResult &result) -> void {
+  auto page_guard = bpm_->WritePage(page_id);
+  auto page = page_guard.AsMut<BPlusTreePage>();
+
+  if (page->IsLeafPage()) {
+    auto leaf_page = page_guard.AsMut<LeafPage>();
+    InsertIntoLeafPage(key, value, leaf_page, result);
+  } else {
+    auto internal_page = page_guard.AsMut<InternalPage>();
+    Insert(key, value, internal_page->Search(key, comparator_), result);
+
+    if (result.split_page_id != INVALID_PAGE_ID) {
+      InsertIntoPage(result.start_key, result.split_page_id, internal_page, result);
+    }
+  }
+
+  if (page_id == header_page_id_ && result.split_page_id != INVALID_PAGE_ID) {
+    // Root page split
+    auto [new_page_id, new_internal_page] = CreateNewInternalPage();
+    new_internal_page->Insert(result.start_key, result.split_page_id, comparator_);
+    new_internal_page->Insert(result.start_key, header_page_id_, comparator_);
+
+    header_page_id_ = new_page_id;
+  }
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::InsertIntoPage(const KeyType &key, page_id_t page_id, InternalPage *page,
+                                    InsertResult &result) -> void {
+  if (!page->IsFull()) {
+    page->Insert(key, page_id, comparator_);
+    result.split_page_id = INVALID_PAGE_ID;
+    return;
+  }
+
+  auto [new_page_id, new_internal_page] = CreateNewInternalPage();
+  auto mid = page->Split(new_internal_page);
+
+  if (comparator_(key, mid) < 0) {
+    page->Insert(key, page_id, comparator_);
+  } else {
+    new_internal_page->Insert(key, page_id, comparator_);
+  }
+
+  result.split_page_id = new_page_id;
+  result.start_key = mid;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page,
+                                        InsertResult &result) -> void {
+  if (page->Exist(key, comparator_)) {
+    result.success = false;
+    return;
+  }
+
+  result.success = true;
+
+  if (!page->IsFull()) {
+    page->Insert(key, value, comparator_);
+    return;
+  }
+
+  auto [new_page_id, new_leaf_page] = CreateNewLeafPage();
+  auto mid = page->Split(new_leaf_page);
+
+  if (comparator_(key, mid) < 0) {
+    page->Insert(key, value, comparator_);
+  } else {
+    new_leaf_page->Insert(key, value, comparator_);
+  }
+
+  result.start_key = mid;
+  result.split_page_id = new_page_id;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::CreateNewInternalPage() -> std::pair<page_id_t, InternalPage *> {
+  auto new_page_id = bpm_->NewPage();
+  auto guard = bpm_->WritePage(new_page_id, AccessType::Index);
+
+  auto new_internal_page = guard.AsMut<InternalPage>();
+  new_internal_page->Init(internal_max_size_);
+
+  return {new_page_id, new_internal_page};
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::CreateNewLeafPage() -> std::pair<page_id_t, LeafPage *> {
+  auto new_page_id = bpm_->NewPage();
+  auto guard = bpm_->WritePage(new_page_id, AccessType::Index);
+
+  auto new_leaf_page = guard.AsMut<LeafPage>();
+  new_leaf_page->Init(leaf_max_size_);
+
+  return {new_page_id, new_leaf_page};
 }
 
 /*****************************************************************************
