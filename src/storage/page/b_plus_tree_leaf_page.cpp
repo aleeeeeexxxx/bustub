@@ -101,17 +101,17 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Split(page_id_t other_page_id, BPlusTreeLeafPag
   SetNextPageId(other_page_id);
 
   // move tombstones
-  size_t new_tombstones_[LEAF_PAGE_TOMB_CNT];
+  size_t new_tombstones[LEAF_PAGE_TOMB_CNT];
   size_t new_num_tombs = 0;
   for (size_t i = 0; i < num_tombstones_; ++i) {
     if (tombstones_[i] >= static_cast<size_t>(mid_index)) {
-      new_tombstones_[new_num_tombs++] = tombstones_[i] - mid_index;
+      new_tombstones[new_num_tombs++] = tombstones_[i] - mid_index;
     } else {
       other->tombstones_[other->num_tombstones_++] = tombstones_[i];
     }
   }
   num_tombstones_ = new_num_tombs;
-  std::copy_n(new_tombstones_, new_num_tombs, other->tombstones_);
+  std::copy_n(new_tombstones, new_num_tombs, other->tombstones_);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
