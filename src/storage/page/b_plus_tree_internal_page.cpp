@@ -14,6 +14,7 @@
 #include <sstream>
 
 #include "common/exception.h"
+#include "common/macros.h"
 #include "storage/page/b_plus_tree_internal_page.h"
 
 namespace bustub {
@@ -65,6 +66,25 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { k
  */
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { return page_id_array_[index]; }
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::IsFull() const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalPage *new_internal_page) -> void {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const page_id_t value,
+                                            const KeyComparator &comparator) -> void {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
 
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;

@@ -148,7 +148,7 @@ class BPlusTree {
  private:
   auto Insert(const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result) -> void;
   auto InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page, InsertResult &result) -> void;
-  auto InsertIntoPage(const KeyType &key, page_id_t value, InternalPage *page, InsertResult &result) -> void;
+  auto InsertIntoInternalPage(const KeyType &key, page_id_t value, InternalPage *page, InsertResult &result) -> void;
   auto CreateNewLeafPage() -> std::pair<page_id_t, LeafPage *>;
   auto CreateNewInternalPage() -> std::pair<page_id_t, InternalPage *>;
 };

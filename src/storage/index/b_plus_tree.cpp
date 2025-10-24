@@ -75,6 +75,16 @@ FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
   InsertResult result;
   Insert(key, value, GetRootPageId(), result);
+
+  if (result.split_page_id != INVALID_PAGE_ID) {  // Root page split
+    auto [new_page_id, new_internal_page] = CreateNewInternalPage();
+
+    new_internal_page->Insert(result.start_key, result.split_page_id, comparator_);
+    new_internal_page->Insert(result.start_key, header_page_id_, comparator_);
+
+    header_page_id_ = new_page_id;
+  }
+
   return result.success;
 }
 
@@ -92,23 +102,14 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_
     Insert(key, value, internal_page->Search(key, comparator_), result);
 
     if (result.split_page_id != INVALID_PAGE_ID) {
-      InsertIntoPage(result.start_key, result.split_page_id, internal_page, result);
+      InsertIntoInternalPage(result.start_key, result.split_page_id, internal_page, result);
     }
-  }
-
-  if (page_id == header_page_id_ && result.split_page_id != INVALID_PAGE_ID) {
-    // Root page split
-    auto [new_page_id, new_internal_page] = CreateNewInternalPage();
-    new_internal_page->Insert(result.start_key, result.split_page_id, comparator_);
-    new_internal_page->Insert(result.start_key, header_page_id_, comparator_);
-
-    header_page_id_ = new_page_id;
   }
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::InsertIntoPage(const KeyType &key, page_id_t page_id, InternalPage *page,
-                                    InsertResult &result) -> void {
+auto BPLUSTREE_TYPE::InsertIntoInternalPage(const KeyType &key, page_id_t page_id, InternalPage *page,
+                                            InsertResult &result) -> void {
   if (!page->IsFull()) {
     page->Insert(key, page_id, comparator_);
     result.split_page_id = INVALID_PAGE_ID;
@@ -116,16 +117,17 @@ auto BPLUSTREE_TYPE::InsertIntoPage(const KeyType &key, page_id_t page_id, Inter
   }
 
   auto [new_page_id, new_internal_page] = CreateNewInternalPage();
-  auto mid = page->Split(new_internal_page);
+  page->Split(new_page_id, new_internal_page);
 
-  if (comparator_(key, mid) < 0) {
+  auto start_key = new_internal_page->KeyAt(0);
+  if (comparator_(key, start_key) < 0) {
     page->Insert(key, page_id, comparator_);
   } else {
     new_internal_page->Insert(key, page_id, comparator_);
   }
 
   result.split_page_id = new_page_id;
-  result.start_key = mid;
+  result.start_key = start_key;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -144,15 +146,16 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &val
   }
 
   auto [new_page_id, new_leaf_page] = CreateNewLeafPage();
-  auto mid = page->Split(new_leaf_page);
+  page->Split(new_page_id, new_leaf_page);
 
-  if (comparator_(key, mid) < 0) {
+  auto start_key = new_leaf_page->KeyAt(0);
+  if (comparator_(key, start_key) < 0) {
     page->Insert(key, value, comparator_);
   } else {
     new_leaf_page->Insert(key, value, comparator_);
   }
 
-  result.start_key = mid;
+  result.start_key = start_key;
   result.split_page_id = new_page_id;
 }
 
