@@ -112,7 +112,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
  public:
   auto Exist(const KeyType &key, const KeyComparator &comparator) const -> bool;
   auto IsFull() const -> bool;
-  auto Split(page_id_t page_id, BPlusTreeLeafPage *new_leaf_page) -> void;
+  auto Split(page_id_t page_id, BPlusTreeLeafPage *other) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> void;
 
  private:

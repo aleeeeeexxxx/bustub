@@ -48,9 +48,9 @@ struct PrintableBPlusTree;
 
 template <typename KeyType>
 struct BPlusTreeInsertResult {
-  bool success;
-  page_id_t split_page_id = INVALID_PAGE_ID;
-  KeyType start_key;
+  bool success_;
+  page_id_t split_page_id_{INVALID_PAGE_ID};
+  KeyType start_key_;
 };
 
 /**

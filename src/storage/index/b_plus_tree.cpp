@@ -76,16 +76,15 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
   InsertResult result;
   Insert(key, value, GetRootPageId(), result);
 
-  if (result.split_page_id != INVALID_PAGE_ID) {  // Root page split
+  if (result.split_page_id_ != INVALID_PAGE_ID) {  // Root page split
     auto [new_page_id, new_internal_page] = CreateNewInternalPage();
 
-    new_internal_page->Insert(result.start_key, result.split_page_id, comparator_);
-    new_internal_page->Insert(result.start_key, header_page_id_, comparator_);
-
+    new_internal_page->Insert(result.start_key_, result.split_page_id_, comparator_);
+    new_internal_page->Insert(result.start_key_, header_page_id_, comparator_);
     header_page_id_ = new_page_id;
   }
 
-  return result.success;
+  return result.success_;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -101,8 +100,8 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_
     auto internal_page = page_guard.AsMut<InternalPage>();
     Insert(key, value, internal_page->Search(key, comparator_), result);
 
-    if (result.split_page_id != INVALID_PAGE_ID) {
-      InsertIntoInternalPage(result.start_key, result.split_page_id, internal_page, result);
+    if (result.split_page_id_ != INVALID_PAGE_ID) {
+      InsertIntoInternalPage(result.start_key_, result.split_page_id_, internal_page, result);
     }
   }
 }
@@ -112,7 +111,7 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const KeyType &key, page_id_t page_i
                                             InsertResult &result) -> void {
   if (!page->IsFull()) {
     page->Insert(key, page_id, comparator_);
-    result.split_page_id = INVALID_PAGE_ID;
+    result.split_page_id_ = INVALID_PAGE_ID;
     return;
   }
 
@@ -126,19 +125,19 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const KeyType &key, page_id_t page_i
     new_internal_page->Insert(key, page_id, comparator_);
   }
 
-  result.split_page_id = new_page_id;
-  result.start_key = start_key;
+  result.split_page_id_ = new_page_id;
+  result.start_key_ = start_key;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page,
                                         InsertResult &result) -> void {
   if (page->Exist(key, comparator_)) {
-    result.success = false;
+    result.success_ = false;
     return;
   }
 
-  result.success = true;
+  result.success_ = true;
 
   if (!page->IsFull()) {
     page->Insert(key, value, comparator_);
@@ -155,8 +154,8 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &val
     new_leaf_page->Insert(key, value, comparator_);
   }
 
-  result.start_key = start_key;
-  result.split_page_id = new_page_id;
+  result.start_key_ = start_key;
+  result.split_page_id_ = new_page_id;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
