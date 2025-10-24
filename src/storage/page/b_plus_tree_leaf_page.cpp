@@ -111,7 +111,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Split(page_id_t other_page_id, BPlusTreeLeafPag
     }
   }
   num_tombstones_ = new_num_tombs;
-  std::memcpy(other->tombstones_, new_tombstones_, new_num_tombs * sizeof(size_t));
+  std::copy_n(new_tombstones_, new_num_tombs, other->tombstones_);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
