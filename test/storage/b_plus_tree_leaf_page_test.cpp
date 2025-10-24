@@ -2,7 +2,7 @@
 #include "common/config.h"
 #include "gtest/gtest.h"
 #include "storage/index/generic_key.h"
-#include "test_util.h"
+#include "test_util.h"  // NOLINT
 
 namespace bustub {
 

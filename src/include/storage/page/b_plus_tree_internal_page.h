@@ -96,7 +96,7 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   KeyType key_array_[INTERNAL_PAGE_SLOT_CNT];
   ValueType page_id_array_[INTERNAL_PAGE_SLOT_CNT];
   // (Spring 2025) Feel free to add more fields and helper functions below if needed
-public:
+ public:
   auto Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType;
   auto IsFull() const -> bool;
   auto Split(page_id_t page_id, BPlusTreeInternalPage *new_internal_page) -> void;
