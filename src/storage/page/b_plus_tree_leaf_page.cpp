@@ -115,8 +115,8 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Split(page_id_t other_page_id, BPlusTreeLeafPag
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value,
-                                        const KeyComparator &comparator) -> void {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator)
+    -> void {
   auto end = key_array_ + GetSize();
   auto _comparator = GenericComparatorWrapper(comparator);
   auto itr = std::lower_bound(key_array_, end, key, _comparator);

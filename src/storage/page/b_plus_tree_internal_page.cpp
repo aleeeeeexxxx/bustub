@@ -81,8 +81,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalP
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const page_id_t value,
-                                            const KeyComparator &comparator) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const page_id_t value, const KeyComparator &comparator)
+    -> void {
   UNIMPLEMENTED("TODO(P2): Add implementation.");
 }
 

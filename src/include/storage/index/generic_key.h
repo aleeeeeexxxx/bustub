@@ -116,9 +116,8 @@ using GenericKeyComparator = std::function<bool(const GenericKey<KeySize>, const
 
 template <size_t KeySize>
 auto GenericComparatorWrapper(const GenericComparator<KeySize> &comparator) -> GenericKeyComparator<KeySize> {
-  return [&comparator](const GenericKey<KeySize> lhs, const GenericKey<KeySize> rhs) {
-    return comparator(lhs, rhs) < 0;
-  };
+  return
+      [&comparator](const GenericKey<KeySize> lhs, const GenericKey<KeySize> rhs) { return comparator(lhs, rhs) < 0; };
 }
 
 }  // namespace bustub

@@ -89,8 +89,8 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_t page_id,
-                            InsertResult &result) -> void {
+auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result)
+    -> void {
   auto page_guard = bpm_->WritePage(page_id);
   auto page = page_guard.AsMut<BPlusTreePage>();
 
