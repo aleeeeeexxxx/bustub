@@ -78,9 +78,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
 
   if (result.split_page_id_ != INVALID_PAGE_ID) {  // Root page split
     auto [new_page_id, new_internal_page] = CreateNewInternalPage();
-
-    new_internal_page->Insert(result.start_key_, result.split_page_id_, comparator_);
-    new_internal_page->Insert(result.start_key_, header_page_id_, comparator_);
+    new_internal_page->Init(result.start_key_, header_page_id_, result.split_page_id_);
     header_page_id_ = new_page_id;
   }
 
@@ -116,9 +114,8 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const KeyType &key, page_id_t page_i
   }
 
   auto [new_page_id, new_internal_page] = CreateNewInternalPage();
-  page->Split(new_page_id, new_internal_page);
+  auto start_key = page->Split(new_page_id, new_internal_page);
 
-  auto start_key = new_internal_page->KeyAt(0);
   if (comparator_(key, start_key) < 0) {
     page->Insert(key, page_id, comparator_);
   } else {

@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -69,21 +70,56 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  auto start = key_array_ + 1;
+  auto end = key_array_ + GetSize();
+  auto wrapped_comparator = GenericComparatorWrapper(comparator);
+  auto itr = std::lower_bound(start, end, key, wrapped_comparator);
+  auto index = std::distance(key_array_, itr);
+  return page_id_array_[index - 1];
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::IsFull() const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::IsFull() const -> bool { return GetSize() >= GetMaxSize(); }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalPage *new_internal_page) -> void {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalPage *other) -> KeyType {
+  int total_size = GetSize();
+  int mid_index = total_size / 2;
+
+  SetSize(mid_index);
+  other->SetSize(total_size - mid_index);
+
+  std::memcpy(other->key_array_, key_array_ + mid_index, (total_size - mid_index) * sizeof(KeyType));
+  std::memcpy(other->page_id_array_, page_id_array_ + mid_index, (total_size - mid_index + 1) * sizeof(ValueType));
+
+  return other->KeyAt(0);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator)
     -> void {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  auto start = key_array_ + 1;
+  auto end = key_array_ + GetSize();
+  auto wrapped_comparator = GenericComparatorWrapper(comparator);
+
+  auto itr = std::lower_bound(start, end, key, wrapped_comparator);
+  auto index = std::distance(key_array_, itr);
+
+  std::memmove(key_array_ + index + 1, key_array_ + index, (GetSize() - index) * sizeof(KeyType));
+  std::memmove(page_id_array_ + index + 1, page_id_array_ + index, (GetSize() - index + 1) * sizeof(ValueType));
+
+  key_array_[index] = key;
+  page_id_array_[index] = value;
+
+  ChangeSizeBy(1);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, page_id_t value1, page_id_t value2) -> void {
+  key_array_[1] = key;
+  page_id_array_[0] = value1;
+  page_id_array_[1] = value2;
+  SetSize(2);
 }
 
 // valuetype for internalNode should be page id_t

@@ -99,8 +99,9 @@ class BPlusTreeInternalPage : public BPlusTreePage {
  public:
   auto Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType;
   auto IsFull() const -> bool;
-  auto Split(page_id_t page_id, BPlusTreeInternalPage *new_internal_page) -> void;
+  auto Split(page_id_t page_id, BPlusTreeInternalPage *other) -> KeyType;
   auto Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator) -> void;
+  auto Init(const KeyType &key, page_id_t value1, page_id_t value2) -> void;
 };
 
 }  // namespace bustub
