@@ -46,11 +46,22 @@ namespace bustub {
 
 struct PrintableBPlusTree;
 
+enum BPlusTreeInsert {
+  Success = 1,
+  Duplicate = 2,
+  OptimisticLockFailed = 3,
+};
+
 template <typename KeyType>
 struct BPlusTreeInsertResult {
-  bool success_;
+  BPlusTreeInsert success_;
   page_id_t split_page_id_{INVALID_PAGE_ID};
   KeyType start_key_;
+
+  auto Clear() -> void {
+    success_ = BPlusTreeInsert::Duplicate;
+    split_page_id_ = INVALID_PAGE_ID;
+  }
 };
 
 /**
@@ -61,20 +72,10 @@ struct BPlusTreeInsertResult {
  */
 class Context {
  public:
-  // When you insert into / remove from the B+ tree, store the write guard of header page here.
-  // Remember to drop the header page guard and set it to nullopt when you want to unlock all.
-  std::optional<WritePageGuard> header_page_{std::nullopt};
+  // Store the page guards of the pages that you're modifying here.
+  std::deque<PageGuard> guards_;
 
-  // Save the root page id here so that it's easier to know if the current page is the root page.
-  page_id_t root_page_id_{INVALID_PAGE_ID};
-
-  // Store the write guards of the pages that you're modifying here.
-  std::deque<WritePageGuard> write_set_;
-
-  // You may want to use this when getting value, but not necessary.
-  std::deque<ReadPageGuard> read_set_;
-
-  auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+  bool optimistic_mode_{true};
 };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
@@ -146,8 +147,11 @@ class BPlusTree {
   page_id_t header_page_id_;
 
  private:
-  auto Insert(const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result) -> void;
-  auto InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page, InsertResult &result) -> void;
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertResult &result) -> void;
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result)
+      -> void;
+  auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page,
+                          InsertResult &result) -> void;
   auto InsertIntoInternalPage(const KeyType &key, page_id_t page_id, InternalPage *page, InsertResult &result) -> void;
   auto CreateNewLeafPage() -> std::pair<page_id_t, LeafPage *>;
   auto CreateNewInternalPage() -> std::pair<page_id_t, InternalPage *>;

@@ -13,7 +13,9 @@
 #include "storage/index/b_plus_tree.h"
 #include "buffer/traced_buffer_pool_manager.h"
 #include "common/config.h"
+#include "common/macros.h"
 #include "storage/index/b_plus_tree_debug.h"
+#include "storage/page/page_guard.h"
 
 namespace bustub {
 
@@ -27,8 +29,12 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPool
       internal_max_size_(internal_max_size),
       header_page_id_(header_page_id) {
   WritePageGuard guard = bpm_->WritePage(header_page_id_);
-  auto root_page = guard.AsMut<BPlusTreeHeaderPage>();
-  root_page->root_page_id_ = INVALID_PAGE_ID;
+  auto header_page = guard.AsMut<BPlusTreeHeaderPage>();
+  header_page->root_page_id_ = bpm_->NewPage();
+
+  auto root_guard = bpm_->WritePage(header_page->root_page_id_, AccessType::Index);
+  auto root_page = root_guard.AsMut<LeafPage>();
+  root_page->Init(leaf_max_size_);
 }
 
 /**
@@ -73,34 +79,82 @@ auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
+  Context ctx;
   InsertResult result;
-  Insert(key, value, GetRootPageId(), result);
+
+  // Optimistic Latch Crabbing Protocol
+  Insert(ctx, key, value, result);
+
+  // Fallback to Pessimistic Latch Crabbing Protocol
+  if (result.success_ == BPlusTreeInsert::OptimisticLockFailed) {
+    ctx.optimistic_mode_ = false;
+
+    ctx.guards_.clear();
+    result.Clear();
+
+    Insert(ctx, key, value, result);
+  }
+
+  return result.success_ == BPlusTreeInsert::Success;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertResult &result) -> void {
+  PageGuard page_guard;
+  if (ctx.optimistic_mode_) {
+    page_guard = bpm_->ReadPage(header_page_id_);
+  } else {
+    page_guard = bpm_->WritePage(header_page_id_);
+  }
+
+  auto header_page = page_guard.As<BPlusTreeHeaderPage>();
+
+  ctx.guards_.push_back(std::move(page_guard));
+  Insert(ctx, key, value, header_page->root_page_id_, result);
 
   if (result.split_page_id_ != INVALID_PAGE_ID) {  // Root page split
+    BUSTUB_ASSERT(!ctx.optimistic_mode_, "Root page split should only happen in pessimistic mode");
+
     auto [new_page_id, new_internal_page] = CreateNewInternalPage();
     new_internal_page->Init(result.start_key_, header_page_id_, result.split_page_id_);
     header_page_id_ = new_page_id;
   }
-
-  return result.success_;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result)
-    -> void {
-  auto page_guard = bpm_->WritePage(page_id);
+auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id,
+                            InsertResult &result) -> void {
+  PageGuard page_guard;
+  if (ctx.optimistic_mode_) {
+    page_guard = bpm_->ReadPage(page_id);
+  } else {
+    page_guard = bpm_->WritePage(page_id);
+  }
+
   auto page = page_guard.AsMut<BPlusTreePage>();
 
-  if (page->IsLeafPage()) {
-    auto leaf_page = page_guard.AsMut<LeafPage>();
-    InsertIntoLeafPage(key, value, leaf_page, result);
-  } else {
-    auto internal_page = page_guard.AsMut<InternalPage>();
-    Insert(key, value, internal_page->Search(key, comparator_), result);
+  if (ctx.optimistic_mode_ || page->CanReleaseAncestor()) {
+    ctx.guards_.clear();
+  }
 
-    if (result.split_page_id_ != INVALID_PAGE_ID) {
-      InsertIntoInternalPage(result.start_key_, result.split_page_id_, internal_page, result);
+  if (page->IsLeafPage()) {
+    if (ctx.optimistic_mode_) {  // Upgrade to write lock
+      page_guard.Drop();
+      page_guard = bpm_->WritePage(page_id);
     }
+
+    auto leaf_page = page_guard.AsMut<LeafPage>();
+    InsertIntoLeafPage(ctx, key, value, leaf_page, result);
+    return;
+  }
+
+  auto internal_page = page_guard.AsMut<InternalPage>();
+  ctx.guards_.push_back(std::move(page_guard));
+
+  Insert(ctx, key, value, internal_page->Search(key, comparator_), result);
+
+  if (result.split_page_id_ != INVALID_PAGE_ID) {
+    InsertIntoInternalPage(result.start_key_, result.split_page_id_, internal_page, result);
   }
 }
 
@@ -127,17 +181,21 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const KeyType &key, page_id_t page_i
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &value, LeafPage *page,
+auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page,
                                         InsertResult &result) -> void {
   if (page->Exist(key, comparator_)) {
-    result.success_ = false;
+    result.success_ = BPlusTreeInsert::Duplicate;
     return;
   }
 
-  result.success_ = true;
-
   if (!page->IsFull()) {
+    result.success_ = BPlusTreeInsert::Success;
     page->Insert(key, value, comparator_);
+    return;
+  }
+
+  if (ctx.optimistic_mode_) {
+    result.success_ = BPlusTreeInsert::OptimisticLockFailed;
     return;
   }
 
@@ -153,6 +211,7 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(const KeyType &key, const ValueType &val
 
   result.start_key_ = start_key;
   result.split_page_id_ = new_page_id;
+  result.success_ = BPlusTreeInsert::Success;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -232,7 +291,11 @@ auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add 
  * You may want to implement this while implementing Task #3.
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto BPLUSTREE_TYPE::GetRootPageId() -> page_id_t {
+  auto guard = bpm_->WritePage(header_page_id_);
+  auto header_page = guard.AsMut<BPlusTreeHeaderPage>();
+  return header_page->root_page_id_;
+}
 
 template class BPlusTree<GenericKey<4>, RID, GenericComparator<4>>;
 
