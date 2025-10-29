@@ -68,23 +68,26 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Exist(const KeyType &key, const KeyComparator &comparator) const -> bool {
+  return Lookup(key, comparator).has_value();
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const
+    -> std::optional<ValueType> {
   auto end = key_array_ + GetSize();
   auto wrapped_comparator = GenericComparatorWrapper(comparator);
   auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
   if (itr == end || comparator(*itr, key) != 0) {
-    return false;
+    return std::nullopt;
   }
   auto index = std::distance(key_array_, itr);
   for (size_t i = 0; i < num_tombstones_; ++i) {
     if (tombstones_[i] == static_cast<size_t>(index)) {
-      return false;
+      return std::nullopt;
     }
   }
-  return true;
+  return rid_array_[index];
 }
-
-FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::IsFull() const -> bool { return GetSize() >= GetMaxSize(); }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Split(page_id_t other_page_id, BPlusTreeLeafPage *other) -> void {
@@ -119,7 +122,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
     -> void {
   auto end = key_array_ + GetSize();
   auto wrapped_comparator = GenericComparatorWrapper(comparator);
-  auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
+  auto itr = std::upper_bound(key_array_, end, key, wrapped_comparator);
 
   size_t index = std::distance(key_array_, itr);
   if (itr != end && comparator(*itr, key) == 0) {

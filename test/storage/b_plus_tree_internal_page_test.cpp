@@ -99,4 +99,39 @@ TEST(BPlusTreeInternalPage, BasicSplit) {
   }
 }
 
+TEST(BPlusTreeInternalPage, BasicSearch) {
+  auto key_schema = ParseCreateStatement("a bigint");
+  GenericComparator<8> comparator(key_schema.get());
+
+  char page1[BUSTUB_PAGE_SIZE];
+  auto *internal = reinterpret_cast<InternalPage *>(page1);
+  internal->Init(3);
+
+  GenericKey<8> key;
+  key.SetFromInteger(1);
+  internal->Init(key, 0, 1);
+
+  key.SetFromInteger(4);
+  internal->Insert(key, 2, comparator);
+
+  /*
+   * Search
+   */
+
+  key.SetFromInteger(0);
+  ASSERT_EQ(internal->Search(key, comparator), 0);
+
+  key.SetFromInteger(1);
+  ASSERT_EQ(internal->Search(key, comparator), 1);
+
+  key.SetFromInteger(2);
+  ASSERT_EQ(internal->Search(key, comparator), 1);
+
+  key.SetFromInteger(4);
+  ASSERT_EQ(internal->Search(key, comparator), 2);
+
+  key.SetFromInteger(5);
+  ASSERT_EQ(internal->Search(key, comparator), 2);
+}
+
 }  // namespace bustub

@@ -94,4 +94,35 @@ TEST(BPlusTreeLeafPage, BasicSplit) {
   }
 }
 
+TEST(BPlusTreeLeafPage, BasicLookup) {
+  auto key_schema = ParseCreateStatement("a bigint");
+  GenericComparator<8> comparator(key_schema.get());
+
+  char page1[BUSTUB_PAGE_SIZE];
+  auto *leaf = reinterpret_cast<LeafPage *>(page1);
+  leaf->Init(5);
+  leaf->SetNextPageId(1);
+
+  GenericKey<8> index_key;
+  RID rid;
+
+  for (auto key = 1; key <= 5; key++) {
+    int64_t value = key & 0xFFFFFFFF;
+
+    rid.Set(static_cast<int32_t>(key), value);
+    index_key.SetFromInteger(key);
+
+    leaf->Insert(index_key, rid, comparator);
+  }
+
+  for (int64_t key = 1; key <= 5; ++key) {
+    GenericKey<8> index_key;
+    index_key.SetFromInteger(key);
+
+    auto ret = leaf->Lookup(index_key, comparator);
+    ASSERT_TRUE(ret.has_value());
+    ASSERT_EQ(ret->GetPageId(), static_cast<int32_t>(key));
+  }
+}
+
 }  // namespace bustub

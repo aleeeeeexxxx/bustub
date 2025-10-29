@@ -70,16 +70,18 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType {
-  auto start = key_array_ + 1;
-  auto end = key_array_ + GetSize();
-  auto wrapped_comparator = GenericComparatorWrapper(comparator);
-  auto itr = std::lower_bound(start, end, key, wrapped_comparator);
-  auto index = std::distance(key_array_, itr);
+  auto index = UpperBound(key, comparator);
   return page_id_array_[index - 1];
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::IsFull() const -> bool { return GetSize() >= GetMaxSize(); }
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::UpperBound(const KeyType &key, const KeyComparator &comparator) const -> int {
+  auto start = key_array_ + 1;
+  auto end = key_array_ + GetSize();
+  auto wrapped_comparator = GenericComparatorWrapper(comparator);
+  auto itr = std::upper_bound(start, end, key, wrapped_comparator);
+  return static_cast<int>(std::distance(key_array_, itr));
+}
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalPage *other) -> KeyType {
@@ -98,12 +100,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalP
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator)
     -> void {
-  auto start = key_array_ + 1;
-  auto end = key_array_ + GetSize();
-  auto wrapped_comparator = GenericComparatorWrapper(comparator);
-
-  auto itr = std::lower_bound(start, end, key, wrapped_comparator);
-  auto index = std::distance(key_array_, itr);
+  auto index = UpperBound(key, comparator);
 
   std::memmove(key_array_ + index + 1, key_array_ + index, (GetSize() - index) * sizeof(KeyType));
   std::memmove(page_id_array_ + index + 1, page_id_array_ + index, (GetSize() - index + 1) * sizeof(ValueType));

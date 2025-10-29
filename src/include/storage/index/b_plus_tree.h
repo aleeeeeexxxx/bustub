@@ -46,20 +46,20 @@ namespace bustub {
 
 struct PrintableBPlusTree;
 
-enum BPlusTreeInsert {
+enum BPlusTreeOpResult {
   Success = 1,
   Duplicate = 2,
   OptimisticLockFailed = 3,
 };
 
 template <typename KeyType>
-struct BPlusTreeInsertResult {
-  BPlusTreeInsert success_;
+struct BPlusTreeInsertRet {
+  BPlusTreeOpResult success_;
   page_id_t split_page_id_{INVALID_PAGE_ID};
   KeyType start_key_;
 
   auto Clear() -> void {
-    success_ = BPlusTreeInsert::Duplicate;
+    success_ = BPlusTreeOpResult::Duplicate;
     split_page_id_ = INVALID_PAGE_ID;
   }
 };
@@ -85,7 +85,7 @@ FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
 class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
-  using InsertResult = BPlusTreeInsertResult<KeyType>;
+  using InsertRet = BPlusTreeInsertRet<KeyType>;
 
  public:
   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
@@ -147,14 +147,25 @@ class BPlusTree {
   page_id_t header_page_id_;
 
  private:
-  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertResult &result) -> void;
-  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertResult &result)
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertRet &ret) -> void;
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertRet &ret) -> void;
+  auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page, InsertRet &ret)
       -> void;
-  auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page,
-                          InsertResult &result) -> void;
-  auto InsertIntoInternalPage(const KeyType &key, page_id_t page_id, InternalPage *page, InsertResult &result) -> void;
-  auto CreateNewLeafPage() -> std::pair<page_id_t, LeafPage *>;
-  auto CreateNewInternalPage() -> std::pair<page_id_t, InternalPage *>;
+  auto InsertIntoInternalPage(const Context &ctx, const KeyType &key, page_id_t page_id, InternalPage *page,
+                              InsertRet &ret) -> void;
+  auto SplitRootPage(const Context &ctx, InsertRet &ret, BPlusTreeHeaderPage *header_page) -> void;
+  auto Lookup(Context &ctx, const KeyType &key, page_id_t page_id) -> std::optional<ValueType>;
+
+  template <typename T>
+  auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {
+    auto new_page_id = bpm_->NewPage();
+    auto guard = bpm_->WritePage(new_page_id, AccessType::Index);
+
+    auto new_page = guard.AsMut<T>();
+    new_page->Init(max_size);
+
+    return {new_page_id, new_page};
+  }
 };
 
 /**

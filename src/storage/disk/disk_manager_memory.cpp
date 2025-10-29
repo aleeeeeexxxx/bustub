@@ -72,7 +72,7 @@ DiskManagerUnlimitedMemory::DiskManagerUnlimitedMemory() {
  */
 void DiskManagerUnlimitedMemory::WritePage(page_id_t page_id, const char *page_data) {
   if (page_id < 0) {
-    fmt::println(stderr, "read invalid page {}", page_id);
+    fmt::println(stderr, "write invalid page {}", page_id);
     std::terminate();
     return;
   }
