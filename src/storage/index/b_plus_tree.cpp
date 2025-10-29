@@ -79,7 +79,7 @@ auto BPLUSTREE_TYPE::Lookup(Context &ctx, const KeyType &key, page_id_t page_id)
   auto page = page_guard.As<BPlusTreePage>();
 
   ctx.guards_.clear();
-  
+
   if (page->IsLeafPage()) {
     auto leaf_page = page_guard.As<LeafPage>();
     return leaf_page->Lookup(key, comparator_);
