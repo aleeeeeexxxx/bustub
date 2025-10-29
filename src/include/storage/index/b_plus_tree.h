@@ -31,6 +31,7 @@
 #include <queue>
 #include <shared_mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "common/config.h"
@@ -45,6 +46,24 @@ namespace bustub {
 
 struct PrintableBPlusTree;
 
+enum BPlusTreeOpResult {
+  Success = 1,
+  Duplicate = 2,
+  OptimisticLockFailed = 3,
+};
+
+template <typename KeyType>
+struct BPlusTreeInsertRet {
+  BPlusTreeOpResult success_;
+  page_id_t split_page_id_{INVALID_PAGE_ID};
+  KeyType start_key_;
+
+  auto Clear() -> void {
+    success_ = BPlusTreeOpResult::Duplicate;
+    split_page_id_ = INVALID_PAGE_ID;
+  }
+};
+
 /**
  * @brief Definition of the Context class.
  *
@@ -53,20 +72,10 @@ struct PrintableBPlusTree;
  */
 class Context {
  public:
-  // When you insert into / remove from the B+ tree, store the write guard of header page here.
-  // Remember to drop the header page guard and set it to nullopt when you want to unlock all.
-  std::optional<WritePageGuard> header_page_{std::nullopt};
+  // Store the page guards of the pages that you're modifying here.
+  std::deque<PageGuard> guards_;
 
-  // Save the root page id here so that it's easier to know if the current page is the root page.
-  page_id_t root_page_id_{INVALID_PAGE_ID};
-
-  // Store the write guards of the pages that you're modifying here.
-  std::deque<WritePageGuard> write_set_;
-
-  // You may want to use this when getting value, but not necessary.
-  std::deque<ReadPageGuard> read_set_;
-
-  auto IsRootPage(page_id_t page_id) -> bool { return page_id == root_page_id_; }
+  bool optimistic_mode_{true};
 };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
@@ -76,6 +85,7 @@ FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
 class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+  using InsertRet = BPlusTreeInsertRet<KeyType>;
 
  public:
   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
@@ -135,6 +145,27 @@ class BPlusTree {
   int leaf_max_size_;
   int internal_max_size_;
   page_id_t header_page_id_;
+
+ private:
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertRet &ret) -> void;
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertRet &ret) -> void;
+  auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page, InsertRet &ret)
+      -> void;
+  auto InsertIntoInternalPage(const Context &ctx, const KeyType &key, page_id_t page_id, InternalPage *page,
+                              InsertRet &ret) -> void;
+  auto SplitRootPage(const Context &ctx, InsertRet &ret, BPlusTreeHeaderPage *header_page) -> void;
+  auto Lookup(Context &ctx, const KeyType &key, page_id_t page_id) -> std::optional<ValueType>;
+
+  template <typename T>
+  auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {
+    auto new_page_id = bpm_->NewPage();
+    auto guard = bpm_->WritePage(new_page_id, AccessType::Index);
+
+    auto new_page = guard.AsMut<T>();
+    new_page->Init(max_size);
+
+    return {new_page_id, new_page};
+  }
 };
 
 /**

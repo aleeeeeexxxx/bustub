@@ -109,6 +109,12 @@ class BPlusTreeLeafPage : public BPlusTreePage {
     return kstr;
   }
 
+ public:
+  auto Exist(const KeyType &key, const KeyComparator &comparator) const -> bool;
+  auto Split(page_id_t page_id, BPlusTreeLeafPage *other) -> void;
+  auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> void;
+  auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
+
  private:
   page_id_t next_page_id_;
   size_t num_tombstones_;

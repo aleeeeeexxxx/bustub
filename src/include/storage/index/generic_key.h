@@ -13,6 +13,7 @@
 #pragma once
 
 #include <cstring>
+#include <functional>
 
 #include "storage/table/tuple.h"
 #include "type/value.h"
@@ -109,5 +110,14 @@ class GenericComparator {
  private:
   Schema *key_schema_;
 };
+
+template <size_t KeySize>
+using GenericKeyComparator = std::function<bool(const GenericKey<KeySize>, const GenericKey<KeySize>)>;
+
+template <size_t KeySize>
+auto GenericComparatorWrapper(const GenericComparator<KeySize> &comparator) -> GenericKeyComparator<KeySize> {
+  return
+      [&comparator](const GenericKey<KeySize> lhs, const GenericKey<KeySize> rhs) { return comparator(lhs, rhs) < 0; };
+}
 
 }  // namespace bustub
