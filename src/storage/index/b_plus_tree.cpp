@@ -108,7 +108,7 @@ auto BPLUSTREE_TYPE::Lookup(Context &ctx, const KeyType &key, page_id_t page_id)
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool {
   Context ctx;
-  InsertRet ret;
+  OpRet ret;
 
   // Optimistic Latch Crabbing Protocol
   Insert(ctx, key, value, ret);
@@ -126,7 +126,7 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, InsertRet &ret) -> void {
+auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, OpRet &ret) -> void {
   PageGuard page_guard;
   if (ctx.optimistic_mode_) {
     page_guard = bpm_->ReadPage(header_page_id_);
@@ -139,25 +139,26 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
   ctx.guards_.push_back(std::move(page_guard));
   Insert(ctx, key, value, header_page->root_page_id_, ret);
 
-  if (ret.split_page_id_ == INVALID_PAGE_ID) {
+  if (ret.new_page_id_ == INVALID_PAGE_ID) {
     return;
   }
   SplitRootPage(ctx, ret, header_page);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::SplitRootPage(const Context &ctx, InsertRet &ret, BPlusTreeHeaderPage *header_page) -> void {
-  BUSTUB_ENSURE(!ctx.optimistic_mode_, "Internal page split should only happen in pessimistic mode");
+auto BPLUSTREE_TYPE::SplitRootPage(const Context &ctx, OpRet &ret, BPlusTreeHeaderPage *header_page) -> void {
+  BUSTUB_ENSURE(!ctx.optimistic_mode_, "[SplitRootPage] Internal page split should only happen in pessimistic mode");
   BUSTUB_ENSURE(ret.success_ == BPlusTreeOpResult::Success,
-                "Insert result should be success when internal page splits");
+                "[SplitRootPage] Insert result should be success when internal page splits");
+  BUSTUB_ENSURE(ret.start_key_.has_value(), "[SplitRootPage] Internal page split should have start key");
 
   auto [new_page_id, new_internal_page] = CreateNewPage<InternalPage>(internal_max_size_);
-  new_internal_page->Init(ret.start_key_, header_page->root_page_id_, ret.split_page_id_);
+  new_internal_page->Init(ret.start_key_.value(), header_page->root_page_id_, ret.new_page_id_);
   header_page->root_page_id_ = new_page_id;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertRet &ret)
+auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, OpRet &ret)
     -> void {
   PageGuard page_guard;
   if (ctx.optimistic_mode_) {
@@ -188,22 +189,24 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 
   Insert(ctx, key, value, internal_page->Search(key, comparator_), ret);
 
-  if (ret.split_page_id_ == INVALID_PAGE_ID) {
+  if (ret.new_page_id_ == INVALID_PAGE_ID) {
     return;
   }
-  InsertIntoInternalPage(ctx, ret.start_key_, ret.split_page_id_, internal_page, ret);
+
+  BUSTUB_ENSURE(ret.start_key_.has_value(), "Internal page split should have start key");
+  InsertIntoInternalPage(ctx, ret.start_key_.value(), ret.new_page_id_, internal_page, ret);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertIntoInternalPage(const Context &ctx, const KeyType &key, page_id_t page_id,
-                                            InternalPage *page, InsertRet &ret) -> void {
+                                            InternalPage *page, OpRet &ret) -> void {
   BUSTUB_ENSURE(!ctx.optimistic_mode_, "Internal page split should only happen in pessimistic mode");
   BUSTUB_ENSURE(ret.success_ == BPlusTreeOpResult::Success,
                 "Insert result should be success when internal page splits");
 
   if (!page->IsFull()) {
     page->Insert(key, page_id, comparator_);
-    ret.split_page_id_ = INVALID_PAGE_ID;
+    ret.new_page_id_ = INVALID_PAGE_ID;
     return;
   }
 
@@ -216,13 +219,13 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const Context &ctx, const KeyType &k
     new_internal_page->Insert(key, page_id, comparator_);
   }
 
-  ret.split_page_id_ = new_page_id;
+  ret.new_page_id_ = new_page_id;
   ret.start_key_ = start_key;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page,
-                                        InsertRet &ret) -> void {
+                                        OpRet &ret) -> void {
   if (page->Exist(key, comparator_)) {
     ret.success_ = BPlusTreeOpResult::Duplicate;
     return;
@@ -250,7 +253,7 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const 
   }
 
   ret.start_key_ = start_key;
-  ret.split_page_id_ = new_page_id;
+  ret.new_page_id_ = new_page_id;
   ret.success_ = BPlusTreeOpResult::Success;
 }
 
