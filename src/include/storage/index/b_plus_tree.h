@@ -51,6 +51,7 @@ enum BPlusTreeOpResult {
   Success = 1,
   Duplicate = 2,             // only for insertion
   OptimisticLockFailed = 3,  // 2025 fall project: optimistic lock failed, need split/merge
+  NotFound = 4,
 };
 
 template <typename KeyType>
@@ -155,15 +156,30 @@ class BPlusTree {
   page_id_t header_page_id_;
 
  private:
-  // handle root page
-  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, OpRet &ret) -> void;
+  /*
+   * insertion
+   */
+
+  auto Insert(Context &ctx, const KeyType &key, const ValueType &value, OpRet &ret) -> void;  // handle root page
   // handle insert into leaf/internal page
   auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, OpRet &ret) -> void;
   auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page, OpRet &ret) -> void;
   auto InsertIntoInternalPage(const Context &ctx, const KeyType &key, page_id_t page_id, InternalPage *page, OpRet &ret)
       -> void;
   auto SplitRootPage(const Context &ctx, OpRet &ret, BPlusTreeHeaderPage *header_page) -> void;
+
+  /*
+   * search
+   */
   auto Lookup(Context &ctx, const KeyType &key, page_id_t page_id) -> std::optional<ValueType>;
+
+  /*
+   * deletion
+   */
+  auto Remove(Context &ctx, const KeyType &key, page_id_t page_id, OpRet &ret) -> void;
+  auto RemoveFromLeafPage(Context &ctx, const KeyType &key, LeafPage *page, OpRet &ret, page_id_t cur, page_id_t younger,
+                          page_id_t older) -> void;
+  auto Redistribute(Context &ctx, LeafPage *cur, page_id_t peer_page_id, OpRet &ret) -> bool;
 
   template <typename T>
   auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {
@@ -175,6 +191,15 @@ class BPlusTree {
 
     return {new_page_id, new_page};
   }
+
+  auto CanReleaseAncestor(bool insert, BPlusTreePage *page) const -> bool {
+    if (insert) {
+      return page->GetSize() < page->GetMaxSize();
+    }
+    return page->GetSize() >= page->GetMinSize();
+  }
+
+  auto ShouldMerge(BPlusTreePage *page) const -> bool { return page->GetSize() < page->GetMinSize(); }
 };
 
 /**

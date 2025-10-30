@@ -113,7 +113,10 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Exist(const KeyType &key, const KeyComparator &comparator) const -> bool;
   auto Split(page_id_t page_id, BPlusTreeLeafPage *other) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> void;
+  auto Remove(const KeyType &key, const KeyComparator &comparator) -> void;
   auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
+  auto CanLendAKey() const -> bool;
+  auto Lend(BPlusTreeLeafPage *other) -> KeyType;
 
  private:
   page_id_t next_page_id_;

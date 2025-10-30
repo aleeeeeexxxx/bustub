@@ -157,7 +157,7 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 
   auto page = page_guard.AsMut<BPlusTreePage>();
 
-  if (ctx.optimistic_mode_ || page->CanReleaseAncestor()) {
+  if (ctx.optimistic_mode_ || CanReleaseAncestor(true, page)) {
     ctx.guards_.clear();
   }
 
@@ -274,6 +274,86 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key) {
   // Declaration of context instance.
   Context ctx;
   UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t page_id, OpRet &ret) -> void {
+  PageGuard page_guard;
+  if (ctx.optimistic_mode_) {
+    page_guard = bpm_->ReadPage(page_id);
+  } else {
+    page_guard = bpm_->WritePage(page_id);
+  }
+
+  auto page = page_guard.AsMut<BPlusTreePage>();
+
+  if (ctx.optimistic_mode_ || CanReleaseAncestor(false, page)) {
+    ctx.guards_.clear();
+  }
+
+  if (page->IsLeafPage()) {
+    if (ctx.optimistic_mode_) {  // Upgrade to write lock
+      page_guard.Drop();
+      page_guard = bpm_->WritePage(page_id);
+    }
+
+    // auto leaf_page = page_guard.AsMut<LeafPage>();
+    // RemoveFromLeafPage(ctx, key, leaf_page, ret);
+    return;
+  }
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::RemoveFromLeafPage(Context &ctx, const KeyType &key, LeafPage *page, OpRet &ret, page_id_t cur,
+                                        page_id_t younger, page_id_t older) -> void {
+  if (!page->Exist(key, comparator_)) {
+    ret.success_ = BPlusTreeOpResult::NotFound;
+    return;
+  }
+
+  page->Remove(key, comparator_);
+
+  if (!ShouldMerge(page)) {
+    ret.success_ = BPlusTreeOpResult::Success;
+    return;
+  }
+
+  /*
+   * Try to redistribute first
+   */
+  if (Redistribute(ctx, page, younger, ret)) {
+    ret.new_page_id_ = cur;
+    return;
+  }
+
+  if (Redistribute(ctx, page, older, ret)) {
+    ret.new_page_id_ = older;
+    return;
+  }
+
+  /*
+   * Merge
+   */
+
+  if (younger != INVALID_PAGE_ID) {
+  }
+
+  if (older != INVALID_PAGE_ID) {
+  }
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::Redistribute(Context &ctx, LeafPage *cur, page_id_t peer_page_id, OpRet &ret) -> bool {
+  auto page_guard = bpm_->WritePage(peer_page_id);
+
+  auto peer = page_guard.AsMut<LeafPage>();
+  if (!peer->CanLendAKey()) {
+    return false;
+  }
+
+  ret.start_key_ = peer->Lend(cur);
+  ret.success_ = BPlusTreeOpResult::Success;
+  return true;
 }
 
 /*****************************************************************************
