@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <deque>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -67,6 +68,7 @@ struct BPlusTreeOpRet {
   auto Clear() -> void {
     success_ = BPlusTreeOpResult::Duplicate;
     new_page_id_ = INVALID_PAGE_ID;
+    start_key_ = std::nullopt;
   }
 };
 
@@ -80,7 +82,7 @@ class Context {
  public:
   // Store the page guards of the pages that you're modifying here.
   std::deque<PageGuard> guards_;
-
+  // optimistic or pessimistic
   bool optimistic_mode_{true};
 };
 
@@ -153,7 +155,9 @@ class BPlusTree {
   page_id_t header_page_id_;
 
  private:
+  // handle root page
   auto Insert(Context &ctx, const KeyType &key, const ValueType &value, OpRet &ret) -> void;
+  // handle insert into leaf/internal page
   auto Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, OpRet &ret) -> void;
   auto InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page, OpRet &ret) -> void;
   auto InsertIntoInternalPage(const Context &ctx, const KeyType &key, page_id_t page_id, InternalPage *page, OpRet &ret)

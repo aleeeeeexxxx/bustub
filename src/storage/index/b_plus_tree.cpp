@@ -146,18 +146,6 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::SplitRootPage(const Context &ctx, OpRet &ret, BPlusTreeHeaderPage *header_page) -> void {
-  BUSTUB_ENSURE(!ctx.optimistic_mode_, "[SplitRootPage] Internal page split should only happen in pessimistic mode");
-  BUSTUB_ENSURE(ret.success_ == BPlusTreeOpResult::Success,
-                "[SplitRootPage] Insert result should be success when internal page splits");
-  BUSTUB_ENSURE(ret.start_key_.has_value(), "[SplitRootPage] Internal page split should have start key");
-
-  auto [new_page_id, new_internal_page] = CreateNewPage<InternalPage>(internal_max_size_);
-  new_internal_page->Init(ret.start_key_.value(), header_page->root_page_id_, ret.new_page_id_);
-  header_page->root_page_id_ = new_page_id;
-}
-
-FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, OpRet &ret)
     -> void {
   PageGuard page_guard;
@@ -195,6 +183,18 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 
   BUSTUB_ENSURE(ret.start_key_.has_value(), "Internal page split should have start key");
   InsertIntoInternalPage(ctx, ret.start_key_.value(), ret.new_page_id_, internal_page, ret);
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::SplitRootPage(const Context &ctx, OpRet &ret, BPlusTreeHeaderPage *header_page) -> void {
+  BUSTUB_ENSURE(!ctx.optimistic_mode_, "[SplitRootPage] Internal page split should only happen in pessimistic mode");
+  BUSTUB_ENSURE(ret.success_ == BPlusTreeOpResult::Success,
+                "[SplitRootPage] Insert result should be success when internal page splits");
+  BUSTUB_ENSURE(ret.start_key_.has_value(), "[SplitRootPage] Internal page split should have start key");
+
+  auto [new_page_id, new_internal_page] = CreateNewPage<InternalPage>(internal_max_size_);
+  new_internal_page->Init(ret.start_key_.value(), header_page->root_page_id_, ret.new_page_id_);
+  header_page->root_page_id_ = new_page_id;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
