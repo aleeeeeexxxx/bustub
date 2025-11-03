@@ -230,6 +230,19 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Merge(BPlusTreeLeafPage *right) -> void {
   right->num_tombstones_ = 0;
 }
 
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::CleanTombstones() -> void {
+  if (num_tombstones_ == 0) {
+    return;
+  }
+
+  std::vector<size_t> to_remove{tombstones_, tombstones_ + num_tombstones_};
+  Clean(to_remove);
+
+  ChangeSizeBy(-1 * num_tombstones_);
+  num_tombstones_ = 0;
+}
+
 /*
  * Helper method to find and return the key associated with input "index" (a.k.a
  * array offset)
