@@ -134,7 +134,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
     -> void {
   auto end = key_array_ + GetSize();
   auto wrapped_comparator = GenericComparatorWrapper(comparator);
-  auto itr = std::upper_bound(key_array_, end, key, wrapped_comparator);
+  auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
 
   size_t index = std::distance(key_array_, itr);
   if (itr != end && comparator(*itr, key) == 0) {
