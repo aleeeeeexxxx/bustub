@@ -63,8 +63,10 @@ class BPlusTreePage {
   auto GetMinSize() const -> int;
 
  public:
+  auto CanLendAKey() const -> bool;
   auto CanReleaseAncestor() const -> bool;
   auto IsFull() const -> bool;
+  auto Underflow() const -> bool;
 
  private:
   // Member variables, attributes that both internal and leaf page share

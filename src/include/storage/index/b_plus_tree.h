@@ -50,6 +50,7 @@ enum BPlusTreeOpResult {
   Success = 1,
   Duplicate = 2,
   OptimisticLockFailed = 3,
+  NotFound = 4,
 };
 
 template <typename KeyType>
@@ -61,6 +62,20 @@ struct BPlusTreeInsertRet {
   auto Clear() -> void {
     success_ = BPlusTreeOpResult::Duplicate;
     split_page_id_ = INVALID_PAGE_ID;
+  }
+};
+
+template <typename KeyType>
+struct BPlusTreeDeleteRet {
+  BPlusTreeOpResult success_;
+  KeyType start_key_;
+  page_id_t split_page_id_{INVALID_PAGE_ID};
+  page_id_t deleted_page_id_{INVALID_PAGE_ID};
+
+  auto Clear() -> void {
+    success_ = BPlusTreeOpResult::Duplicate;
+    split_page_id_ = INVALID_PAGE_ID;
+    deleted_page_id_ = INVALID_PAGE_ID;
   }
 };
 
@@ -86,6 +101,7 @@ class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
   using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
   using InsertRet = BPlusTreeInsertRet<KeyType>;
+  using DeleteRet = BPlusTreeDeleteRet<KeyType>;
 
  public:
   explicit BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
@@ -155,6 +171,12 @@ class BPlusTree {
                               InsertRet &ret) -> void;
   auto SplitRootPage(const Context &ctx, InsertRet &ret, BPlusTreeHeaderPage *header_page) -> void;
   auto Lookup(Context &ctx, const KeyType &key, page_id_t page_id) -> std::optional<ValueType>;
+  auto DeleteFromLeafPage(Context &ctx, const KeyType &key, page_id_t cur, LeafPage *page, page_id_t sibling,
+                          bool isLeftPage, DeleteRet &ret) -> void;
+  auto RedistributeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
+                        bool isLeftPage, DeleteRet &ret) -> void;
+  auto MergeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
+                 bool isLeftPage, DeleteRet &ret) -> void;
 
   template <typename T>
   auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {

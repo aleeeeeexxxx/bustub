@@ -113,7 +113,16 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Exist(const KeyType &key, const KeyComparator &comparator) const -> bool;
   auto Split(page_id_t page_id, BPlusTreeLeafPage *other) -> void;
   auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> void;
+  auto InsertInto(const KeyType &key, const ValueType &value, size_t index) -> void;
+  auto LookupIndex(const KeyType &key, const KeyComparator &comparator) const -> std::optional<size_t>;
   auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
+  auto Remove(size_t index) -> void;
+  auto Clean(std::vector<size_t> &index) -> void;
+  auto Lend(BPlusTreeLeafPage *right) -> KeyType;
+  auto Merge(BPlusTreeLeafPage *right) -> void;
+  auto CleanTombstones() -> void;
+  auto Overwrite(const ValueType &value, size_t index) -> void;
+  auto SplitTombstones(size_t index, BPlusTreeLeafPage *other) -> void;
 
  private:
   page_id_t next_page_id_;

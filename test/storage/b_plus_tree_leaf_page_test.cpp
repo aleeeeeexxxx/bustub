@@ -125,4 +125,51 @@ TEST(BPlusTreeLeafPage, BasicLookup) {
   }
 }
 
+TEST(BPlusTreeLeafPage, RandomRemove) {
+  auto key_schema = ParseCreateStatement("a bigint");
+  GenericComparator<8> comparator(key_schema.get());
+
+  char page1[BUSTUB_PAGE_SIZE];
+  auto *leaf = reinterpret_cast<LeafPage *>(page1);
+  leaf->Init(5);
+  leaf->SetNextPageId(1);
+
+  GenericKey<8> index_key;
+  RID rid;
+
+  for (auto key = 1; key <= 5; key++) {
+    int64_t value = key & 0xFFFFFFFF;
+
+    rid.Set(static_cast<int32_t>(key), value);
+    index_key.SetFromInteger(key);
+
+    leaf->Insert(index_key, rid, comparator);
+  }
+
+  // remove 1, in tombstone
+  leaf->Remove(1);
+  ASSERT_EQ(leaf->GetSize(), 5);
+  ASSERT_EQ(leaf->GetTombstones().size(), 1);
+
+  // remove 0, in tombstone
+  leaf->Remove(0);
+  ASSERT_EQ(leaf->GetSize(), 5);
+  ASSERT_EQ(leaf->GetTombstones().size(), 2);
+
+  // remove 2, in tombstone
+  leaf->Remove(2);
+  ASSERT_EQ(leaf->GetSize(), 5);
+  ASSERT_EQ(leaf->GetTombstones().size(), 3);
+
+  // remove 4, clean tombstone
+  leaf->Remove(4);
+  ASSERT_EQ(leaf->GetSize(), 1);
+  ASSERT_EQ(leaf->GetTombstones().size(), 0);
+
+  index_key.SetFromInteger(4);
+  auto ret = leaf->Lookup(index_key, comparator);
+  ASSERT_TRUE(ret.has_value());
+  ASSERT_EQ(ret->GetPageId(), static_cast<int32_t>(4));
+}
+
 }  // namespace bustub
