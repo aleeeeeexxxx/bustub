@@ -45,4 +45,7 @@ auto BPlusTreePage::GetMinSize() const -> int { return max_size_ / 2; }
 auto BPlusTreePage::CanReleaseAncestor() const -> bool { return GetSize() < GetMaxSize(); }
 auto BPlusTreePage::IsFull() const -> bool { return GetSize() >= GetMaxSize(); }
 
+auto BPlusTreePage::CanLendAKey() const -> bool { return GetSize() > GetMinSize(); }
+auto BPlusTreePage::Underflow() const -> bool { return GetSize() < GetMinSize(); }
+
 }  // namespace bustub

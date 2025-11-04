@@ -273,6 +273,57 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key) {
   UNIMPLEMENTED("TODO(P2): Add implementation.");
 }
 
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_id_t cur, LeafPage *page,
+                                        page_id_t sibling, bool isLeftPage, DeleteRet &ret) -> void {
+  auto index = page->LookupIndex(key, comparator_);
+  if (!index.has_value()) {
+    ret.success_ = BPlusTreeOpResult::NotFound;
+    return;
+  }
+  ret.success_ = BPlusTreeOpResult::Success;
+
+  page->Remove(index.value());
+  if (!page->Underflow()) {
+    return;
+  }
+
+  auto guard = bpm_->WritePage(sibling);
+
+  auto sibling_page = guard.AsMut<LeafPage>();
+  sibling_page->CleanTombstones();
+
+  if (!sibling_page->CanLendAKey()) {
+    RedistributeLeaf(page, sibling_page, cur, sibling, isLeftPage, ret);
+  } else {
+    MergeLeaf(page, sibling_page, cur, sibling, isLeftPage, ret);
+  }
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::RedistributeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id,
+                                      page_id_t sibling_page_id, bool isLeftPage, DeleteRet &ret) -> void {
+  if (!isLeftPage) {
+    return RedistributeLeaf(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+  }
+
+  ret.start_key_ = sibling_page->Lend(page);
+  ret.split_page_id_ = cur_page_id;
+  ret.deleted_page_id_ = INVALID_PAGE_ID;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::MergeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
+                               bool isLeftPage, DeleteRet &ret) -> void {
+  if (!isLeftPage) {
+    return MergeLeaf(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+  }
+
+  sibling_page->Merge(page);
+  ret.deleted_page_id_ = cur_page_id;
+  ret.split_page_id_ = INVALID_PAGE_ID;
+}
+
 /*****************************************************************************
  * INDEX ITERATOR
  *****************************************************************************/

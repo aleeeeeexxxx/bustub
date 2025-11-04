@@ -13,9 +13,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
-#include <sstream>
 
-#include "common/exception.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 
@@ -68,12 +66,22 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetNextPageId(page_id_t next_page_id) { next_pa
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Exist(const KeyType &key, const KeyComparator &comparator) const -> bool {
-  return Lookup(key, comparator).has_value();
+  return LookupIndex(key, comparator).has_value();
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const
     -> std::optional<ValueType> {
+  auto index = LookupIndex(key, comparator);
+  if (!index.has_value()) {
+    return std::nullopt;
+  }
+  return rid_array_[index.value()];
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::LookupIndex(const KeyType &key, const KeyComparator &comparator) const
+    -> std::optional<size_t> {
   auto end = key_array_ + GetSize();
   auto wrapped_comparator = GenericComparatorWrapper(comparator);
   auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
@@ -86,7 +94,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator 
       return std::nullopt;
     }
   }
-  return rid_array_[index];
+  return index;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -103,14 +111,18 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Split(page_id_t other_page_id, BPlusTreeLeafPag
   other->SetNextPageId(GetNextPageId());
   SetNextPageId(other_page_id);
 
-  // move tombstones
+  SplitTombstones(mid_index, other);
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::SplitTombstones(size_t index, BPlusTreeLeafPage *other) -> void {
   size_t new_tombstones[LEAF_PAGE_TOMB_CNT];
   size_t new_num_tombs = 0;
   for (size_t i = 0; i < num_tombstones_; ++i) {
-    if (tombstones_[i] >= static_cast<size_t>(mid_index)) {
-      new_tombstones[new_num_tombs++] = tombstones_[i] - mid_index;
+    if (tombstones_[i] < static_cast<size_t>(index)) {
+      new_tombstones[new_num_tombs++] = tombstones_[i];
     } else {
-      other->tombstones_[other->num_tombstones_++] = tombstones_[i];
+      other->tombstones_[other->num_tombstones_++] = tombstones_[i] - index;
     }
   }
   num_tombstones_ = new_num_tombs;
@@ -122,30 +134,113 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &val
     -> void {
   auto end = key_array_ + GetSize();
   auto wrapped_comparator = GenericComparatorWrapper(comparator);
-  auto itr = std::upper_bound(key_array_, end, key, wrapped_comparator);
+  auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
 
   size_t index = std::distance(key_array_, itr);
   if (itr != end && comparator(*itr, key) == 0) {
-    // key exists, check tombstones
-    for (size_t i = 0; i < num_tombstones_; ++i) {
-      if (tombstones_[i] == index) {
-        // remove tombstone
-        std::memmove(&tombstones_[i], &tombstones_[i + 1], (num_tombstones_ - i - 1) * sizeof(size_t));
-        --num_tombstones_;
-        break;
-      }
-    }
-    rid_array_[index] = value;
+    Overwrite(value, index);
     return;
   }
 
-  // shift right
+  InsertInto(key, value, index);
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Overwrite(const ValueType &value, size_t index) -> void {
+  for (size_t i = 0; i < num_tombstones_; ++i) {
+    if (tombstones_[i] == index) {
+      // remove tombstone
+      std::memmove(&tombstones_[i], &tombstones_[i + 1], (num_tombstones_ - i - 1) * sizeof(size_t));
+      --num_tombstones_;
+      break;
+    }
+  }
+  rid_array_[index] = value;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::InsertInto(const KeyType &key, const ValueType &value, size_t index) -> void {
   std::memmove(key_array_ + index + 1, key_array_ + index, (GetSize() - index) * sizeof(KeyType));
   std::memmove(rid_array_ + index + 1, rid_array_ + index, (GetSize() - index) * sizeof(ValueType));
   key_array_[index] = key;
   rid_array_[index] = value;
 
+  for (size_t i = 0; i < num_tombstones_; ++i) {
+    if (tombstones_[i] >= index) {
+      ++tombstones_[i];
+    }
+  }
+
   ChangeSizeBy(1);
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(size_t index) -> void {
+  if (num_tombstones_ < LEAF_PAGE_TOMB_CNT) {
+    tombstones_[num_tombstones_++] = index;
+    return;
+  }
+
+  std::vector<size_t> to_remove{tombstones_, tombstones_ + num_tombstones_};
+  to_remove.push_back(index);
+
+  Clean(to_remove);
+
+  ChangeSizeBy(-1 * (num_tombstones_ + 1));
+  num_tombstones_ = 0;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Clean(std::vector<size_t> &to_remove) -> void {
+  std::sort(to_remove.begin(), to_remove.end());
+  to_remove.push_back(to_remove.size() + 1);
+
+  size_t moved = to_remove[0];
+  size_t prev = 0;
+
+  for (size_t cur = 1; cur < to_remove.size(); ++cur) {
+    auto n = to_remove[cur] - to_remove[prev] - 1;
+
+    std::memmove(key_array_ + moved, key_array_ + to_remove[prev] + 1, n * sizeof(KeyType));
+    std::memmove(rid_array_ + moved, rid_array_ + to_remove[prev] + 1, n * sizeof(ValueType));
+
+    prev = cur;
+    moved += n;
+  }
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lend(BPlusTreeLeafPage *right) -> KeyType {
+  KeyType lend_key = key_array_[GetSize() - 1];
+  ValueType lend_value = rid_array_[GetSize() - 1];
+
+  right->InsertInto(lend_key, lend_value, 0);
+
+  ChangeSizeBy(-1);
+  return lend_key;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Merge(BPlusTreeLeafPage *right) -> void {
+  std::memmove(key_array_ + GetSize(), right->key_array_, right->GetSize() * sizeof(KeyType));
+  std::memmove(rid_array_ + GetSize(), right->rid_array_, right->GetSize() * sizeof(ValueType));
+
+  ChangeSizeBy(right->GetSize());
+  right->SetSize(0);
+  right->num_tombstones_ = 0;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::CleanTombstones() -> void {
+  if (num_tombstones_ == 0) {
+    return;
+  }
+
+  std::vector<size_t> to_remove{tombstones_, tombstones_ + num_tombstones_};
+  Clean(to_remove);
+
+  ChangeSizeBy(-1 * num_tombstones_);
+  num_tombstones_ = 0;
 }
 
 /*
