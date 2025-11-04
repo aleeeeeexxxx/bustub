@@ -394,11 +394,10 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
       page->SoftRemove(to_remove);
 
       ret.success_ = BPlusTreeOpResult::Success;
-      return;
     } else {
       ret.success_ = BPlusTreeOpResult::OptimisticLockFailed;
-      return;
     }
+    return;
   }
 
   ret.success_ = BPlusTreeOpResult::Success;

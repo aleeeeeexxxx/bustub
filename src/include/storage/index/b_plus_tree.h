@@ -86,12 +86,12 @@ class Context {
   // Store the page guards of the pages that you're modifying here.
   std::deque<PageGuard> guards_;
 
-  bool optimistic_mode_;
+  bool optimistic_mode_{true};
 
-  page_id_t root_page_id_;
+  page_id_t root_page_id_{INVALID_PAGE_ID};
 
  public:
-  Context() : optimistic_mode_(true), root_page_id_(INVALID_PAGE_ID) {}
+  Context() = default;
 
   auto SetRootPageId(page_id_t page_id) -> void { root_page_id_ = page_id; }
   auto IsRootPage(page_id_t page_id) const -> bool { return page_id == root_page_id_; }
