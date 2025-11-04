@@ -205,7 +205,7 @@ class BPlusTree {
   auto Redistribute(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
                     DeleteRet &ret) -> void {
     if (!isLeftPage) {
-      return RedistributeLeaf(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+      return Redistribute(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
     }
 
     ret.start_key_ = sibling_page->Lend(page);
@@ -217,7 +217,7 @@ class BPlusTree {
   auto Merge(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
              DeleteRet &ret) -> void {
     if (!isLeftPage) {
-      return MergeLeaf(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+      return Merge(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
     }
 
     sibling_page->Merge(page);
