@@ -307,14 +307,22 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, DeleteRet &ret) ->
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, page_id_t sibling, bool isLeftPage,
                             DeleteRet &ret) -> void {
-  auto guard = bpm_->WritePage(cur);
+  PageGuard guard;
+  if (ctx.IsOptimisticMode()) {
+    guard = bpm_->ReadPage(header_page_id_);
+  } else {
+    guard = bpm_->WritePage(header_page_id_);
+  }
   auto page = guard.AsMut<BPlusTreePage>();
 
-  if (page->CanReleaseAncestor(false)) {
+  if (ctx.IsOptimisticMode() || page->CanReleaseAncestor(false)) {
     ctx.guards_.clear();
   }
 
   if (page->IsLeafPage()) {
+    guard.Drop();
+    guard = bpm_->WritePage(header_page_id_);
+
     auto leaf_page = guard.AsMut<LeafPage>();
     return DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
   }
@@ -379,16 +387,29 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
     ret.success_ = BPlusTreeOpResult::NotFound;
     return;
   }
+
+  auto to_remove = index.value();
+  if (ctx.IsOptimisticMode()) {
+    if (page->CanSafeRemove(to_remove)) {
+      page->SoftRemove(to_remove);
+
+      ret.success_ = BPlusTreeOpResult::Success;
+      return;
+    } else {
+      ret.success_ = BPlusTreeOpResult::OptimisticLockFailed;
+      return;
+    }
+  }
+
   ret.success_ = BPlusTreeOpResult::Success;
 
-  page->Remove(index.value());
+  page->Remove(to_remove);
   if (!page->Underflow()) {
     return;
   }
 
   if (sibling == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur), "Only root page can have no sibling");
-
     LOG_DEBUG("[LeafPage] No sibling page for %d, skip deleting", cur);
     return;
   }
