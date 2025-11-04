@@ -118,6 +118,25 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, page_id_t value1, 
   page_id_array_[1] = value2;
   SetSize(2);
 }
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SearchAndSibling(const KeyType &key, CurAndSibling &result) const -> void {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Update(size_t index, const KeyType &value, const KeyComparator &comparator)
+    -> bool {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lend(BPlusTreeInternalPage *right) -> KeyType {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Merge(BPlusTreeInternalPage *right) -> void {
+  UNIMPLEMENTED("TODO(P2): Add implementation.");
+}
 
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;

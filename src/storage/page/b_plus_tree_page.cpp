@@ -42,7 +42,13 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
  */
 auto BPlusTreePage::GetMinSize() const -> int { return max_size_ / 2; }
 
-auto BPlusTreePage::CanReleaseAncestor() const -> bool { return GetSize() < GetMaxSize(); }
+auto BPlusTreePage::CanReleaseAncestor(bool insert) const -> bool {
+  if (insert) {
+    return GetSize() < GetMaxSize();
+  }
+  return GetSize() > GetMinSize();
+}
+
 auto BPlusTreePage::IsFull() const -> bool { return GetSize() >= GetMaxSize(); }
 
 auto BPlusTreePage::CanLendAKey() const -> bool { return GetSize() > GetMinSize(); }
