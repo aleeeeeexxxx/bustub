@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <queue>
 #include <string>
 
@@ -19,6 +20,23 @@
 #include "storage/page/b_plus_tree_page.h"
 
 namespace bustub {
+
+struct CurAndSibling {
+  page_id_t cur_;
+  size_t cur_index_;
+
+  page_id_t sibling_;
+  size_t sibling_index_;
+
+  bool is_left_;
+
+  auto GetIndexByPageId(page_id_t page_id) -> size_t {
+    if (cur_ == page_id) {
+      return cur_index_;
+    }
+    return sibling_index_;
+  }
+};
 
 #define B_PLUS_TREE_INTERNAL_PAGE_TYPE BPlusTreeInternalPage<KeyType, ValueType, KeyComparator>
 #define INTERNAL_PAGE_HEADER_SIZE 12
@@ -102,6 +120,11 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator) -> void;
   auto Init(const KeyType &key, page_id_t value1, page_id_t value2) -> void;
   auto UpperBound(const KeyType &key, const KeyComparator &comparator) const -> int;
+  auto SearchAndSibling(const KeyType &key, CurAndSibling &result) const -> void;
+  auto Update(size_t index, const KeyType &value, const KeyComparator &comparator) -> bool;
+  auto Remove(size_t index) -> void;
+  auto Lend(BPlusTreeInternalPage *right) -> KeyType;
+  auto Merge(BPlusTreeInternalPage *right) -> void;
 };
 
 }  // namespace bustub

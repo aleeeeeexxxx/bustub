@@ -64,7 +64,7 @@ class BPlusTreePage {
 
  public:
   auto CanLendAKey() const -> bool;
-  auto CanReleaseAncestor() const -> bool;
+  auto CanReleaseAncestor(bool insert) const -> bool;
   auto IsFull() const -> bool;
   auto Underflow() const -> bool;
 

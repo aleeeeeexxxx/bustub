@@ -123,6 +123,8 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto CleanTombstones() -> void;
   auto Overwrite(const ValueType &value, size_t index) -> void;
   auto SplitTombstones(size_t index, BPlusTreeLeafPage *other) -> void;
+  auto CanSafeRemove(size_t index) const -> bool;
+  auto SoftRemove(size_t index) -> void;
 
  private:
   page_id_t next_page_id_;

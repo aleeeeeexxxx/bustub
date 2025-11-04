@@ -22,20 +22,16 @@
  */
 #pragma once
 
-#include <algorithm>
 #include <deque>
 #include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
-#include <queue>
-#include <shared_mutex>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "common/config.h"
-#include "common/macros.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_header_page.h"
 #include "storage/page/b_plus_tree_internal_page.h"
@@ -91,6 +87,20 @@ class Context {
   std::deque<PageGuard> guards_;
 
   bool optimistic_mode_{true};
+
+  page_id_t root_page_id_{INVALID_PAGE_ID};
+
+ public:
+  Context() = default;
+
+  auto SetRootPageId(page_id_t page_id) -> void { root_page_id_ = page_id; }
+  auto IsRootPage(page_id_t page_id) const -> bool { return page_id == root_page_id_; }
+  auto IsOptimisticMode() const -> bool { return optimistic_mode_; }
+  auto Reset(bool optimistic_mode) -> void {
+    optimistic_mode_ = optimistic_mode;
+    guards_.clear();
+    root_page_id_ = INVALID_PAGE_ID;
+  }
 };
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator, NumTombs>
@@ -173,10 +183,11 @@ class BPlusTree {
   auto Lookup(Context &ctx, const KeyType &key, page_id_t page_id) -> std::optional<ValueType>;
   auto DeleteFromLeafPage(Context &ctx, const KeyType &key, page_id_t cur, LeafPage *page, page_id_t sibling,
                           bool isLeftPage, DeleteRet &ret) -> void;
-  auto RedistributeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
-                        bool isLeftPage, DeleteRet &ret) -> void;
-  auto MergeLeaf(LeafPage *page, LeafPage *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
-                 bool isLeftPage, DeleteRet &ret) -> void;
+  auto Remove(Context &ctx, const KeyType &key, page_id_t cur, page_id_t sibling, bool isLeftPage, DeleteRet &ret)
+      -> void;
+  auto DeleteFromInternalPage(const Context &ctx, size_t to_delete, page_id_t cur_page_id, InternalPage *page,
+                              page_id_t sibling_page_id, bool isLeftPage, DeleteRet &ret) -> void;
+  auto Remove(Context &ctx, const KeyType &key, DeleteRet &ret) -> void;
 
   template <typename T>
   auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {
@@ -187,6 +198,40 @@ class BPlusTree {
     new_page->Init(max_size);
 
     return {new_page_id, new_page};
+  }
+
+  template <typename T>
+  auto Redistribute(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
+                    DeleteRet &ret) -> void {
+    if (!isLeftPage) {
+      return Redistribute(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+    }
+
+    ret.start_key_ = sibling_page->Lend(page);
+    ret.split_page_id_ = cur_page_id;
+    ret.deleted_page_id_ = INVALID_PAGE_ID;
+  }
+
+  template <typename T>
+  auto Merge(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
+             DeleteRet &ret) -> void {
+    if (!isLeftPage) {
+      return Merge(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+    }
+
+    sibling_page->Merge(page);
+    ret.deleted_page_id_ = cur_page_id;
+    ret.split_page_id_ = INVALID_PAGE_ID;
+  }
+
+  template <typename T>
+  auto Balance(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
+               DeleteRet &ret) -> void {
+    if (sibling_page->CanLendAKey()) {
+      return Redistribute<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
+    }
+
+    Merge<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
   }
 };
 

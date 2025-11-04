@@ -242,6 +242,21 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CleanTombstones() -> void {
   ChangeSizeBy(-1 * num_tombstones_);
   num_tombstones_ = 0;
 }
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
+  if (num_tombstones_ < LEAF_PAGE_TOMB_CNT) {
+    return true;
+  }
+  return GetSize() - num_tombstones_ >= static_cast<size_t>(GetMinSize());
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::SoftRemove(size_t index) -> void {
+  if (num_tombstones_ >= LEAF_PAGE_TOMB_CNT) {
+    CleanTombstones();
+  }
+  Remove(index);
+}
 
 /*
  * Helper method to find and return the key associated with input "index" (a.k.a
