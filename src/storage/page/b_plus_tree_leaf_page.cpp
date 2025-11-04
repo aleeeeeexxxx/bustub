@@ -247,7 +247,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
   if (num_tombstones_ < LEAF_PAGE_TOMB_CNT) {
     return true;
   }
-  return GetSize() - num_tombstones_ - 1 > static_cast<size_t>(GetMinSize());
+  return GetSize() - num_tombstones_ >= static_cast<size_t>(GetMinSize());
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
