@@ -252,7 +252,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::SoftRemove(size_t index) -> void {
-   if (num_tombstones_ >= LEAF_PAGE_TOMB_CNT) {
+  if (num_tombstones_ >= LEAF_PAGE_TOMB_CNT) {
     CleanTombstones();
   }
   Remove(index);

@@ -188,7 +188,6 @@ class BPlusTree {
   auto DeleteFromInternalPage(const Context &ctx, size_t to_delete, page_id_t cur_page_id, InternalPage *page,
                               page_id_t sibling_page_id, bool isLeftPage, DeleteRet &ret) -> void;
   auto Remove(Context &ctx, const KeyType &key, DeleteRet &ret) -> void;
-                    
 
   template <typename T>
   auto CreateNewPage(int max_size) -> std::pair<page_id_t, T *> {
