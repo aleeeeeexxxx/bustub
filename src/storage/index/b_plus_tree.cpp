@@ -331,7 +331,7 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
   ctx.guards_.push_back(std::move(guard));
 
   CurAndSibling result;
-  internal_page->SearchAndSibling(key, result);
+  internal_page->SearchCurrentAndSibling(key, result, comparator_);
 
   Remove(ctx, key, result.cur_, result.sibling_, result.is_left_, ret);
 
@@ -343,7 +343,7 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
     auto to_update = result.GetIndexByPageId(ret.split_page_id_);
     ret.split_page_id_ = INVALID_PAGE_ID;
 
-    internal_page->Update(to_update, ret.start_key_, comparator_);
+    internal_page->SetKeyAt(to_update, ret.start_key_);
     return;
   }
 
