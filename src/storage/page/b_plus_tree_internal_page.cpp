@@ -131,7 +131,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, page_id_t value1, 
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SearchCurrentAndSibling(const KeyType &key, CurAndSibling &result,
-                                                      const KeyComparator &comparator) const -> void {
+                                                             const KeyComparator &comparator) const -> void {
   auto index = GetTargetPageIndex(key, comparator);
   result.cur_ = ValueAt(index);
   result.cur_index_ = index;
@@ -172,7 +172,7 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(size_t index) -> void {
   std::memmove(key_array_ + index, key_array_ + index + 1, (GetSize() - index - 1) * sizeof(KeyType));
   std::memmove(page_id_array_ + index, page_id_array_ + index + 1, (GetSize() - index - 1) * sizeof(ValueType));
-  
+
   ChangeSizeBy(-1);
 }
 
