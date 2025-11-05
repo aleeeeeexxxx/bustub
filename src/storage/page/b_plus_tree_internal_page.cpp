@@ -70,8 +70,14 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const -> ValueType { ret
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType {
-  auto index = UpperBound(key, comparator);
-  return page_id_array_[index - 1];
+  auto index = GetTargetPageIndex(key, comparator);
+  return ValueAt(index);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::GetTargetPageIndex(const KeyType &key, const KeyComparator &comparator) const
+    -> size_t {
+  return UpperBound(key, comparator) - 1;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
@@ -101,9 +107,13 @@ INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator)
     -> void {
   auto index = UpperBound(key, comparator);
+  InsertInto(index, key, value);
+}
 
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInto(size_t index, const KeyType &key, page_id_t value) -> void {
   std::memmove(key_array_ + index + 1, key_array_ + index, (GetSize() - index) * sizeof(KeyType));
-  std::memmove(page_id_array_ + index + 1, page_id_array_ + index, (GetSize() - index + 1) * sizeof(ValueType));
+  std::memmove(page_id_array_ + index + 1, page_id_array_ + index, (GetSize() - index) * sizeof(ValueType));
 
   key_array_[index] = key;
   page_id_array_[index] = value;
@@ -118,28 +128,53 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, page_id_t value1, 
   page_id_array_[1] = value2;
   SetSize(2);
 }
+
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SearchAndSibling(const KeyType &key, CurAndSibling &result) const -> void {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SearchCurrentAndSibling(const KeyType &key, CurAndSibling &result,
+                                                             const KeyComparator &comparator) const -> void {
+  auto index = GetTargetPageIndex(key, comparator);
+  result.cur_ = ValueAt(index);
+  result.cur_index_ = index;
+
+  auto sibling = static_cast<int>(index) - 1;
+  if (sibling >= 0) {
+    result.is_left_ = true;
+  } else {
+    sibling = index + 1;
+    result.is_left_ = false;
+  }
+
+  result.sibling_ = ValueAt(sibling);
+  result.sibling_index_ = sibling;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Update(size_t index, const KeyType &value, const KeyComparator &comparator)
-    -> bool {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
-}
-INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lend(BPlusTreeInternalPage *right) -> KeyType {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  KeyType lend_key = key_array_[GetSize() - 1];
+  ValueType lend_value = page_id_array_[GetSize() - 1];
+
+  right->InsertInto(0, lend_key, lend_value);
+
+  ChangeSizeBy(-1);
+  return lend_key;
 }
 
 INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Merge(BPlusTreeInternalPage *right) -> void {
-  UNIMPLEMENTED("TODO(P2): Add implementation.");
+  std::memmove(key_array_ + GetSize(), right->key_array_, right->GetSize() * sizeof(KeyType));
+  std::memmove(page_id_array_ + GetSize(), right->page_id_array_, right->GetSize() * sizeof(ValueType));
+
+  ChangeSizeBy(right->GetSize());
+  right->SetSize(0);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(size_t index) -> void { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(size_t index) -> void {
+  std::memmove(key_array_ + index, key_array_ + index + 1, (GetSize() - index - 1) * sizeof(KeyType));
+  std::memmove(page_id_array_ + index, page_id_array_ + index + 1, (GetSize() - index - 1) * sizeof(ValueType));
+
+  ChangeSizeBy(-1);
+}
 
 // valuetype for internalNode should be page id_t
 template class BPlusTreeInternalPage<GenericKey<4>, page_id_t, GenericComparator<4>>;

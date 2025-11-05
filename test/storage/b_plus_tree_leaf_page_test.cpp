@@ -11,8 +11,7 @@ using LeafPage = BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>, 3>;
 auto key_schema = ParseCreateStatement("a bigint");
 GenericComparator<8> comparator(key_schema.get());
 
-auto PrepareLeafPage(char *page, const GenericComparator<8> &comparator, int max_size, std::vector<int> &&keys)
-    -> LeafPage * {
+auto PrepareLeafPage(char *page, int max_size, std::vector<int> &&keys) -> LeafPage * {
   auto *leaf = reinterpret_cast<LeafPage *>(page);
 
   leaf->Init(max_size);
@@ -34,7 +33,7 @@ auto PrepareLeafPage(char *page, const GenericComparator<8> &comparator, int max
 
 TEST(BPlusTreeLeafPage, RandomInsert) {
   char page[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page, comparator, 4, {});
+  auto *leaf = PrepareLeafPage(page, 4, {});
 
   int64_t keys[] = {4, 1, 3, 2};
 
@@ -68,7 +67,7 @@ TEST(BPlusTreeLeafPage, RandomInsert) {
 
 TEST(BPlusTreeLeafPage, ReInsertWithTombstones) {
   char page[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page, comparator, 5, {1, 2});
+  auto *leaf = PrepareLeafPage(page, 5, {1, 2});
 
   leaf->Remove(0);  // remove key 1
 
@@ -89,7 +88,7 @@ TEST(BPlusTreeLeafPage, ReInsertWithTombstones) {
 
 TEST(BPlusTreeLeafPage, InsertWithTombstones) {
   char page[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page, comparator, 5, {1, 3});
+  auto *leaf = PrepareLeafPage(page, 5, {1, 3});
   leaf->Init(4);
 
   GenericKey<8> index_key;
@@ -118,11 +117,11 @@ TEST(BPlusTreeLeafPage, InsertWithTombstones) {
 
 TEST(BPlusTreeLeafPage, BasicSplit) {
   char page1[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page1, comparator, 5, {1, 2, 3, 4, 5});
+  auto *leaf = PrepareLeafPage(page1, 5, {1, 2, 3, 4, 5});
   leaf->SetNextPageId(1);
 
   char page2[BUSTUB_PAGE_SIZE];
-  auto *other = PrepareLeafPage(page2, comparator, 5, {});
+  auto *other = PrepareLeafPage(page2, 5, {});
 
   leaf->Split(2, other);
 
@@ -149,11 +148,11 @@ TEST(BPlusTreeLeafPage, BasicSplit) {
 
 TEST(BPlusTreeLeafPage, SplitWithTombstones) {
   char page1[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page1, comparator, 5, {0, 1, 2, 3, 4});
+  auto *leaf = PrepareLeafPage(page1, 5, {0, 1, 2, 3, 4});
   leaf->SetNextPageId(1);
 
   char page2[BUSTUB_PAGE_SIZE];
-  auto *other = PrepareLeafPage(page2, comparator, 5, {});
+  auto *other = PrepareLeafPage(page2, 5, {});
 
   // remove 2 and 4
   leaf->Remove(1);
@@ -172,7 +171,7 @@ TEST(BPlusTreeLeafPage, SplitWithTombstones) {
 
 TEST(BPlusTreeLeafPage, BasicLookup) {
   char page[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page, comparator, 5, {1, 2, 3, 4, 5});
+  auto *leaf = PrepareLeafPage(page, 5, {1, 2, 3, 4, 5});
 
   GenericKey<8> index_key;
   for (int64_t key = 1; key <= 5; ++key) {
@@ -186,7 +185,7 @@ TEST(BPlusTreeLeafPage, BasicLookup) {
 
 TEST(BPlusTreeLeafPage, RandomRemove) {
   char page[BUSTUB_PAGE_SIZE];
-  auto *leaf = PrepareLeafPage(page, comparator, 5, {1, 2, 3, 4, 5});
+  auto *leaf = PrepareLeafPage(page, 5, {1, 2, 3, 4, 5});
 
   // remove 1, in tombstone
   leaf->Remove(1);
@@ -218,9 +217,9 @@ TEST(BPlusTreeLeafPage, RandomRemove) {
 
 TEST(BPlusTreeLeafPage, BasicLend) {
   char page1[BUSTUB_PAGE_SIZE];
-  auto left = PrepareLeafPage(page1, comparator, 5, {1, 2, 3, 4, 5});
+  auto left = PrepareLeafPage(page1, 5, {1, 2, 3, 4, 5});
   char page2[BUSTUB_PAGE_SIZE];
-  auto right = PrepareLeafPage(page2, comparator, 5, {10});
+  auto right = PrepareLeafPage(page2, 5, {10});
 
   left->Lend(right);
 
@@ -235,9 +234,9 @@ TEST(BPlusTreeLeafPage, BasicLend) {
 
 TEST(BPlusTreeLeafPage, BasicMerge) {
   char page1[BUSTUB_PAGE_SIZE];
-  auto left = PrepareLeafPage(page1, comparator, 5, {1, 2, 3, 4});
+  auto left = PrepareLeafPage(page1, 5, {1, 2, 3, 4});
   char page2[BUSTUB_PAGE_SIZE];
-  auto right = PrepareLeafPage(page2, comparator, 5, {10});
+  auto right = PrepareLeafPage(page2, 5, {10});
 
   left->Merge(right);
 
