@@ -88,7 +88,7 @@ TEST(BPlusTreeInternalPage, BasicSplit) {
 
   ASSERT_EQ(other->GetSize(), 3);
   ASSERT_EQ(other->ValueAt(0), 3);
-  for (int64_t key = 4; key <= 5; ++key) {
+  for (int64_t key = 3; key <= 5; ++key) {
     GenericKey<8> index_key;
     index_key.SetFromInteger(key);
 
