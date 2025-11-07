@@ -14,6 +14,8 @@
 
 namespace bustub {
 
+int MIN_PAGE_SIZE = 2;
+
 /*
  * Helper methods to get/set page type
  * Page type enum class is defined in b_plus_tree_page.h
@@ -40,7 +42,9 @@ void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
  * Generally, min page size == max page size / 2
  * But whether you will take ceil() or floor() depends on your implementation
  */
-auto BPlusTreePage::GetMinSize() const -> int { return max_size_ / 2; }
+auto BPlusTreePage::GetMinSize() const -> int {
+  return std::ceil(static_cast<double>(GetMaxSize()) / 2);
+}
 
 auto BPlusTreePage::CanReleaseAncestor(bool insert) const -> bool {
   if (insert) {

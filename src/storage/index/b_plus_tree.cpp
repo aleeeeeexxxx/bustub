@@ -309,9 +309,9 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
                             DeleteRet &ret) -> void {
   PageGuard guard;
   if (ctx.IsOptimisticMode()) {
-    guard = bpm_->ReadPage(header_page_id_);
+    guard = bpm_->ReadPage(cur);
   } else {
-    guard = bpm_->WritePage(header_page_id_);
+    guard = bpm_->WritePage(cur);
   }
   auto page = guard.AsMut<BPlusTreePage>();
 
