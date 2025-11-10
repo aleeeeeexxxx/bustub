@@ -14,8 +14,6 @@
 
 namespace bustub {
 
-int MIN_PAGE_SIZE = 2;
-
 /*
  * Helper methods to get/set page type
  * Page type enum class is defined in b_plus_tree_page.h

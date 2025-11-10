@@ -23,7 +23,7 @@ namespace bustub {
  * HELPER METHODS AND UTILITIES
  *****************************************************************************/
 
-int MIN_INTERNAL_PAGE_SIZE = 3;
+const int MIN_INTERNAL_PAGE_SIZE = 3;
 
 /**
  * @brief Init method after creating a new internal page.
