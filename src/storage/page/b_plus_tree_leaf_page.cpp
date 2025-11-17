@@ -244,6 +244,10 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CleanTombstones() -> void {
 }
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
+  if (LEAF_PAGE_TOMB_CNT == 0) {
+    return GetSize() - 1 >= GetMinSize();
+  }
+
   if (num_tombstones_ < LEAF_PAGE_TOMB_CNT) {
     return true;
   }

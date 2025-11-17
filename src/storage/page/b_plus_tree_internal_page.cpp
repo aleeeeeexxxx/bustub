@@ -18,6 +18,8 @@ namespace bustub {
  * HELPER METHODS AND UTILITIES
  *****************************************************************************/
 
+const int MIN_INTERNAL_PAGE_SIZE = 3;
+
 /**
  * @brief Init method after creating a new internal page.
  *
@@ -29,6 +31,8 @@ namespace bustub {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(int max_size) {
+  BUSTUB_ENSURE(max_size >= MIN_INTERNAL_PAGE_SIZE, "Invalid internal page size");
+
   SetPageType(IndexPageType::INTERNAL_PAGE);
   SetSize(0);
   SetMaxSize(max_size);
