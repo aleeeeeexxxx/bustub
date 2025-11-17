@@ -57,9 +57,12 @@ FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result) -> bool {
   auto page_guard = bpm_->ReadPage(header_page_id_);
   auto header_page = page_guard.As<BPlusTreeHeaderPage>();
+  if (header_page->root_page_id_ == INVALID_PAGE_ID) {
+    return false;
+  }
 
   Context ctx;
-  ctx.root_page_id_ = header_page->root_page_id_;
+  ctx.SetRootPageId(header_page->root_page_id_);
   ctx.guards_.push_back(std::move(page_guard));
 
   auto value = Lookup(ctx, key, header_page->root_page_id_);
@@ -293,6 +296,11 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, DeleteRet &ret) ->
   }
 
   auto header_page = page_guard.AsMut<BPlusTreeHeaderPage>();
+  if (header_page->root_page_id_ == INVALID_PAGE_ID) {
+    ret.success_ = BPlusTreeOpResult::NotFound;
+    return;
+  }
+
   ctx.SetRootPageId(header_page->root_page_id_);
 
   ctx.guards_.push_back(std::move(page_guard));
