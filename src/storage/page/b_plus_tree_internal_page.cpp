@@ -10,13 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <algorithm>
-#include <iostream>
-#include <sstream>
-
-#include "common/exception.h"
-#include "common/macros.h"
 #include "storage/page/b_plus_tree_internal_page.h"
+#include <algorithm>
 
 namespace bustub {
 /*****************************************************************************
@@ -90,9 +85,17 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::UpperBound(const KeyType &key, const KeyCom
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalPage *other) -> KeyType {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SplitAndInsert(BPlusTreeInternalPage *other, const KeyType &key,
+                                                    const ValueType &value, const KeyComparator &comparator)
+    -> KeyType {
   int total_size = GetSize();
   int mid_index = total_size / 2;
+  bool insert_into_other = false;
+
+  if (comparator(key, key_array_[mid_index]) > 0) {
+    mid_index++;
+    insert_into_other = true;
+  }
 
   SetSize(mid_index);
   other->SetSize(total_size - mid_index);
@@ -100,18 +103,28 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Split(page_id_t page_id, BPlusTreeInternalP
   std::memcpy(other->key_array_, key_array_ + mid_index, (total_size - mid_index) * sizeof(KeyType));
   std::memcpy(other->page_id_array_, page_id_array_ + mid_index, (total_size - mid_index + 1) * sizeof(ValueType));
 
+  if (insert_into_other) {
+    if (comparator(key, other->KeyAt(0)) < 0) {
+      other->InsertInto(0, key, value);
+    } else {
+      other->Insert(key, value, comparator);
+    }
+  } else {
+    Insert(key, value, comparator);
+  }
+
   return other->KeyAt(0);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator)
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator)
     -> void {
   auto index = UpperBound(key, comparator);
   InsertInto(index, key, value);
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInto(size_t index, const KeyType &key, page_id_t value) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInto(size_t index, const KeyType &key, const ValueType &value) -> void {
   std::memmove(key_array_ + index + 1, key_array_ + index, (GetSize() - index) * sizeof(KeyType));
   std::memmove(page_id_array_ + index + 1, page_id_array_ + index, (GetSize() - index) * sizeof(ValueType));
 
@@ -122,7 +135,8 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertInto(size_t index, const KeyType &key
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, page_id_t value1, page_id_t value2) -> void {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Init(const KeyType &key, const ValueType &value1, const ValueType &value2)
+    -> void {
   key_array_[1] = key;
   page_id_array_[0] = value1;
   page_id_array_[1] = value2;
