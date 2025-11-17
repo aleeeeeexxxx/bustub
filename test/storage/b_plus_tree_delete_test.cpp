@@ -46,8 +46,6 @@ TEST(BPlusTreeTests, DeleteTestNoIterator) {
     tree.Insert(index_key, rid);
   }
 
-  tree.Print(bpm);
-
   std::vector<RID> rids;
   for (auto key : keys) {
     rids.clear();
@@ -63,8 +61,6 @@ TEST(BPlusTreeTests, DeleteTestNoIterator) {
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key);
-
-    tree.Print(bpm);
   }
 
   int64_t size = 0;
@@ -95,7 +91,7 @@ TEST(BPlusTreeTests, DeleteTestNoIterator) {
   delete bpm;
 }
 
-TEST(BPlusTreeTests, DISABLED_OptimisticDeleteTest) {
+TEST(BPlusTreeTests, OptimisticDeleteTest) {
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
 
