@@ -31,11 +31,7 @@ BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPool
       header_page_id_(header_page_id) {
   WritePageGuard guard = bpm_->WritePage(header_page_id_);
   auto header_page = guard.AsMut<BPlusTreeHeaderPage>();
-  header_page->root_page_id_ = bpm_->NewPage();
-
-  auto root_guard = bpm_->WritePage(header_page->root_page_id_, AccessType::Index);
-  auto root_page = root_guard.AsMut<LeafPage>();
-  root_page->Init(leaf_max_size_);
+  header_page->root_page_id_ = INVALID_PAGE_ID;
 }
 
 /**
@@ -135,6 +131,16 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
   }
 
   auto header_page = page_guard.AsMut<BPlusTreeHeaderPage>();
+  if (header_page->root_page_id_ == INVALID_PAGE_ID) {
+    if (ctx.IsOptimisticMode()) {
+      ret.success_ = BPlusTreeOpResult::OptimisticLockFailed;
+      return;
+    }
+
+    auto [new_page_id, new_leaf_page] = CreateNewPage<LeafPage>(leaf_max_size_);
+    header_page->root_page_id_ = new_page_id;
+  }
+
   ctx.SetRootPageId(header_page->root_page_id_);
 
   ctx.guards_.push_back(std::move(page_guard));
