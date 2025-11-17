@@ -65,12 +65,14 @@ TEST(BPlusTreeInternalPage, RandomInsert) {
 
 void TestSplit(std::vector<int> &&original_keys, std::vector<int> &&splitted1, std::vector<int> &&splitted2,
                int to_insert) {
+  auto total_size = original_keys.size();
+
   char page1[BUSTUB_PAGE_SIZE];
-  auto internal = PrepareInternalPage(page1, original_keys.size(), std::move(original_keys));
+  auto internal = PrepareInternalPage(page1, total_size, std::move(original_keys));
 
   char page2[BUSTUB_PAGE_SIZE];
   auto *other = reinterpret_cast<InternalPage *>(page2);
-  other->Init(original_keys.size());
+  other->Init(total_size);
 
   GenericKey<8> index_key;
   index_key.SetFromInteger(to_insert);
