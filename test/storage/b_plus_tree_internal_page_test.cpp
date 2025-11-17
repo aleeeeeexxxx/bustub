@@ -63,39 +63,48 @@ TEST(BPlusTreeInternalPage, RandomInsert) {
   }
 }
 
-TEST(BPlusTreeInternalPage, BasicSplit) {
+void TestSplit(std::vector<int> &&original_keys, std::vector<int> &&splitted1, std::vector<int> &&splitted2,
+               int to_insert) {
   char page1[BUSTUB_PAGE_SIZE];
-  auto internal = PrepareInternalPage(page1, 6, {0, 1, 2, 3, 4, 5});
+  auto internal = PrepareInternalPage(page1, original_keys.size(), std::move(original_keys));
 
   char page2[BUSTUB_PAGE_SIZE];
   auto *other = reinterpret_cast<InternalPage *>(page2);
-  other->Init(5);
+  other->Init(original_keys.size());
 
-  auto key = internal->Split(2, other);
-  GenericKey<8> split_key;
-  split_key.SetFromInteger(3);
-  ASSERT_EQ(comparator(key, split_key), 0);
+  GenericKey<8> index_key;
+  index_key.SetFromInteger(to_insert);
+  auto key = internal->SplitAndInsert(other, index_key, to_insert, comparator);
 
-  ASSERT_EQ(internal->GetSize(), 3);
-  ASSERT_EQ(internal->ValueAt(0), 0);
-  for (int64_t key = 1; key <= 2; ++key) {
-    GenericKey<8> index_key;
-    index_key.SetFromInteger(key);
+  index_key.SetFromInteger(splitted2[0]);
+  ASSERT_EQ(comparator(key, index_key), 0);
 
-    ASSERT_EQ(comparator(internal->KeyAt(key), index_key), 0);
-    ASSERT_EQ(internal->ValueAt(key), key);
+  ASSERT_EQ(internal->GetSize(), splitted1.size());
+  for (int64_t i = 0; i < internal->GetSize(); ++i) {
+    auto value = splitted1[i];
+    index_key.SetFromInteger(value);
+
+    ASSERT_EQ(comparator(internal->KeyAt(i), index_key), 0);
+    ASSERT_EQ(internal->ValueAt(i), value);
   }
 
-  ASSERT_EQ(other->GetSize(), 3);
-  ASSERT_EQ(other->ValueAt(0), 3);
-  for (int64_t key = 3; key <= 5; ++key) {
-    GenericKey<8> index_key;
-    index_key.SetFromInteger(key);
+  ASSERT_EQ(other->GetSize(), splitted2.size());
+  for (int64_t i = 0; i < other->GetSize(); ++i) {
+    auto value = splitted2[i];
+    index_key.SetFromInteger(value);
 
-    ASSERT_EQ(comparator(other->KeyAt(key - 3), index_key), 0);
-    ASSERT_EQ(other->ValueAt(key - 3), key);
+    ASSERT_EQ(comparator(other->KeyAt(i), index_key), 0);
+    ASSERT_EQ(other->ValueAt(i), value);
   }
 }
+
+TEST(BPlusTreeInternalPage, SplitAndInsert1) { TestSplit({0, 1, 2, 4, 5, 6}, {0, 1, 2, 3}, {4, 5, 6}, 3); }
+
+TEST(BPlusTreeInternalPage, SplitAndInsert2) { TestSplit({0, 1, 2, 5, 6}, {0, 1, 2}, {3, 5, 6}, 3); }
+
+TEST(BPlusTreeInternalPage, SplitAndInsert3) { TestSplit({0, 1, 4, 5, 6}, {0, 1, 3}, {4, 5, 6}, 3); }
+
+TEST(BPlusTreeInternalPage, SplitAndInsert4) { TestSplit({0, 2, 4, 6, 8}, {0, 2, 4}, {6, 7, 8}, 7); }
 
 TEST(BPlusTreeInternalPage, BasicSearch) {
   char page[BUSTUB_PAGE_SIZE];

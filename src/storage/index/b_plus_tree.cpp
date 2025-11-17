@@ -209,13 +209,7 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const Context &ctx, const KeyType &k
   }
 
   auto [new_page_id, new_internal_page] = CreateNewPage<InternalPage>(internal_max_size_);
-  auto start_key = page->Split(new_page_id, new_internal_page);
-
-  if (comparator_(key, start_key) < 0) {
-    page->Insert(key, page_id, comparator_);
-  } else {
-    new_internal_page->Insert(key, page_id, comparator_);
-  }
+  auto start_key = page->SplitAndInsert(new_internal_page, key, page_id, comparator_);
 
   ret.split_page_id_ = new_page_id;
   ret.start_key_ = start_key;
