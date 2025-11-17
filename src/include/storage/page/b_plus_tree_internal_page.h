@@ -116,16 +116,17 @@ class BPlusTreeInternalPage : public BPlusTreePage {
 
  public:
   auto Search(const KeyType &key, const KeyComparator &comparator) const -> ValueType;
-  auto Split(page_id_t page_id, BPlusTreeInternalPage *other) -> KeyType;
-  auto Insert(const KeyType &key, page_id_t value, const KeyComparator &comparator) -> void;
-  auto Init(const KeyType &key, page_id_t value1, page_id_t value2) -> void;
+  auto SplitAndInsert(BPlusTreeInternalPage *other, const KeyType &key, const ValueType &value,
+                      const KeyComparator &comparator) -> KeyType;
+  auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> void;
+  auto Init(const KeyType &key, const ValueType &value1, const ValueType &value2) -> void;
   auto UpperBound(const KeyType &key, const KeyComparator &comparator) const -> int;
   auto SearchCurrentAndSibling(const KeyType &key, CurAndSibling &result, const KeyComparator &comparator) const
       -> void;
   auto Remove(size_t index) -> void;
   auto Lend(BPlusTreeInternalPage *right) -> KeyType;
   auto Merge(BPlusTreeInternalPage *right) -> void;
-  auto InsertInto(size_t index, const KeyType &key, page_id_t value) -> void;
+  auto InsertInto(size_t index, const KeyType &key, const ValueType &value) -> void;
   auto GetTargetPageIndex(const KeyType &key, const KeyComparator &comparator) const -> size_t;
 };
 
