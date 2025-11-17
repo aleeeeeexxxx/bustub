@@ -292,10 +292,12 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, DeleteRet &ret) ->
   ctx.guards_.push_back(std::move(page_guard));
   Remove(ctx, key, header_page->root_page_id_, INVALID_PAGE_ID, false, ret);
 
-  if (ret.split_page_id_ == INVALID_PAGE_ID) {
-    return;
+  if (ret.split_page_id_ != INVALID_PAGE_ID) {
+    header_page->root_page_id_ = ret.split_page_id_;
   }
-  header_page->root_page_id_ = ret.split_page_id_;
+  if (ret.deleted_page_id_ == header_page->root_page_id_) {
+    header_page->root_page_id_ = INVALID_PAGE_ID;
+  }
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -315,7 +317,7 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
 
   if (page->IsLeafPage()) {
     guard.Drop();
-    guard = bpm_->WritePage(header_page_id_);
+    guard = bpm_->WritePage(cur);
 
     auto leaf_page = guard.AsMut<LeafPage>();
     return DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
@@ -362,7 +364,7 @@ auto BPLUSTREE_TYPE::DeleteFromInternalPage(const Context &ctx, size_t to_delete
 
     LOG_DEBUG("[InternalPage] No sibling page for %d", cur);
     if (page->GetSize() == 1) {
-      ret.split_page_id_ = cur_page_id;
+      ret.split_page_id_ = page->ValueAt(0);
     }
     return;
   }
@@ -404,6 +406,9 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
   if (sibling == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur), "Only root page can have no sibling");
     LOG_DEBUG("[LeafPage] No sibling page for %d, skip deleting", cur);
+    if (page->GetSize() == 0) {
+      ret.deleted_page_id_ = cur;
+    }
     return;
   }
 

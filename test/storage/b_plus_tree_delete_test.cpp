@@ -24,7 +24,7 @@ namespace bustub {
 
 using bustub::DiskManagerUnlimitedMemory;
 
-TEST(BPlusTreeTests, DISABLED_DeleteTestNoIterator) {
+TEST(BPlusTreeTests, DeleteTestNoIterator) {
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -46,6 +46,8 @@ TEST(BPlusTreeTests, DISABLED_DeleteTestNoIterator) {
     tree.Insert(index_key, rid);
   }
 
+  tree.Print(bpm);
+
   std::vector<RID> rids;
   for (auto key : keys) {
     rids.clear();
@@ -61,6 +63,8 @@ TEST(BPlusTreeTests, DISABLED_DeleteTestNoIterator) {
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
     tree.Remove(index_key);
+
+    tree.Print(bpm);
   }
 
   int64_t size = 0;
