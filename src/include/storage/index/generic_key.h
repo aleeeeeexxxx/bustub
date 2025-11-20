@@ -104,6 +104,9 @@ class GenericComparator {
 
   GenericComparator(const GenericComparator &other) : key_schema_{other.key_schema_} {}
 
+  GenericComparator &operator=(const GenericComparator &) = default;
+
+
   // constructor
   explicit GenericComparator(Schema *key_schema) : key_schema_(key_schema) {}
 

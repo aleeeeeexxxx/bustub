@@ -19,7 +19,9 @@
 #include "buffer/traced_buffer_pool_manager.h"
 #include "common/config.h"
 #include "common/macros.h"
+#include "storage/page/b_plus_tree_internal_page.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include "storage/page/page_guard.h"
 
 namespace bustub {
 
@@ -28,9 +30,21 @@ namespace bustub {
 
 FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
 class IndexIterator {
+  using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
+  using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>;
+
  public:
   // you may define your own constructor based on your member variables
-  IndexIterator();
+  IndexIterator(KeyComparator comparator);
+  IndexIterator(page_id_t page_id, size_t index, PageGuard &&guard, std::shared_ptr<TracedBufferPoolManager> bpm,
+                KeyComparator comparator);
+
+  IndexIterator(IndexIterator &) = delete;
+  auto operator=(const IndexIterator &) -> IndexIterator & = delete;
+
+  IndexIterator(IndexIterator &&that) noexcept;
+  auto operator=(IndexIterator &&that) noexcept -> IndexIterator &;
+
   ~IndexIterator();  // NOLINT
 
   auto IsEnd() -> bool;
@@ -44,7 +58,18 @@ class IndexIterator {
   auto operator!=(const IndexIterator &itr) const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
 
  private:
-  // add your own private member variables here
+  void move(IndexIterator &&that);
+
+ private:
+  page_id_t page_id_;
+  size_t index_;
+  PageGuard guard_;
+  bool end_;
+  KeyComparator comparator_;
+  std::shared_ptr<TracedBufferPoolManager> bpm_;
+
+ private:
+  mutable std::pair<KeyType, ValueType> cur_pair_;
 };
 
 }  // namespace bustub

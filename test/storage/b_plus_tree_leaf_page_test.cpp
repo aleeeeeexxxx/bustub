@@ -254,4 +254,39 @@ TEST(BPlusTreeLeafPage, BasicMerge) {
   ASSERT_EQ(left->LookupIndex(index_key, comparator).value(), 4);
 }
 
+TEST(BPlusTreeLeafPage, GetLowerBoundIndex) {
+  char page1[BUSTUB_PAGE_SIZE];
+  auto leaf = PrepareLeafPage(page1, 5, {1, 3, 5, 7});
+
+  // 3 -> tombstone
+  leaf->Remove(1);
+
+  GenericKey<8> index_key;
+  std::optional<size_t> ret;
+
+  index_key.SetFromInteger(0);
+  ret = leaf->GetLowerBoundIndex(index_key, comparator);
+  ASSERT_TRUE(ret.has_value());
+  ASSERT_EQ(ret.value(), 0);
+
+  index_key.SetFromInteger(1);
+  ret = leaf->GetLowerBoundIndex(index_key, comparator);
+  ASSERT_TRUE(ret.has_value());
+  ASSERT_EQ(ret.value(), 0);
+
+  index_key.SetFromInteger(3);
+  ret = leaf->GetLowerBoundIndex(index_key, comparator);
+  ASSERT_TRUE(ret.has_value());
+  ASSERT_EQ(ret.value(), 2);
+
+  index_key.SetFromInteger(4);
+  ret = leaf->GetLowerBoundIndex(index_key, comparator);
+  ASSERT_TRUE(ret.has_value());
+  ASSERT_EQ(ret.value(), 2);
+
+  index_key.SetFromInteger(8);
+  ret = leaf->GetLowerBoundIndex(index_key, comparator);
+  ASSERT_FALSE(ret.has_value());
+}
+
 }  // namespace bustub

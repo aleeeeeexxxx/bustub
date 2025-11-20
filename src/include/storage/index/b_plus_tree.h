@@ -233,6 +233,8 @@ class BPlusTree {
 
     Merge<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
   }
+
+  auto GetIterator(const std::optional<KeyType>&& key) -> INDEXITERATOR_TYPE;
 };
 
 /**

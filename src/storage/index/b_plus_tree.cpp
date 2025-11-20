@@ -16,6 +16,7 @@
 #include "common/logger.h"
 #include "common/macros.h"
 #include "storage/index/b_plus_tree_debug.h"
+#include "storage/index/index_iterator.h"
 #include "storage/page/page_guard.h"
 
 namespace bustub {
@@ -446,7 +447,7 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
  * @return : index iterator
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { return GetIterator(std::nullopt); }
 
 /**
  * @brief Input parameter is low key, find the leaf page that contains the input key
@@ -454,7 +455,51 @@ auto BPLUSTREE_TYPE::Begin() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Ad
  * @return : index iterator
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { return GetIterator(std::optional(key)); }
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto BPLUSTREE_TYPE::GetIterator(const std::optional<KeyType> &&key) -> INDEXITERATOR_TYPE {
+  auto pre_page_guard = bpm_->ReadPage(header_page_id_);
+  auto header_page = pre_page_guard.As<BPlusTreeHeaderPage>();
+
+  auto cur_page_id = header_page->root_page_id_;
+
+  while (true) {
+    if (cur_page_id == INVALID_PAGE_ID) {
+      return INDEXITERATOR_TYPE(comparator_);
+    }
+
+    auto cur_guard = bpm_->ReadPage(cur_page_id);
+    auto cur_page = cur_guard.As<BPlusTreePage>();
+
+    if (cur_page->IsLeafPage()) {
+      if (key.has_value()) {
+        auto leaf_page = cur_guard.As<LeafPage>();
+        auto index = leaf_page->GetLowerBoundIndex(key.value(), comparator_);
+        if (index.has_value()) {
+          return INDEXITERATOR_TYPE(cur_page_id, index.value(), std::move(cur_guard), bpm_, comparator_);
+        } else {
+          cur_page_id = leaf_page->GetNextPageId();
+          continue;
+        }
+
+      } else {
+        return INDEXITERATOR_TYPE(cur_page_id, 0, std::move(cur_guard), bpm_, comparator_);
+      }
+    }
+
+    pre_page_guard.Drop();
+
+    auto internal_page = cur_guard.As<InternalPage>();
+    if (key.has_value()) {
+      cur_page_id = internal_page->Search(key.value(), comparator_);
+    } else {
+      cur_page_id = internal_page->ValueAt(0);
+    }
+
+    pre_page_guard = std::move(cur_guard);
+  }
+}
 
 /**
  * @brief Input parameter is void, construct an index iterator representing the end
@@ -462,7 +507,7 @@ auto BPLUSTREE_TYPE::Begin(const KeyType &key) -> INDEXITERATOR_TYPE { UNIMPLEME
  * @return : index iterator
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+auto BPLUSTREE_TYPE::End() -> INDEXITERATOR_TYPE { return INDEXITERATOR_TYPE(comparator_); }
 
 /**
  * @return Page id of the root of this tree

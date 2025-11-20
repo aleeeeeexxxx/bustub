@@ -14,6 +14,7 @@
 #include <cstring>
 #include <iterator>
 
+#include "common/macros.h"
 #include "common/rid.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
 
@@ -89,12 +90,51 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::LookupIndex(const KeyType &key, const KeyCompar
     return std::nullopt;
   }
   auto index = std::distance(key_array_, itr);
-  for (size_t i = 0; i < num_tombstones_; ++i) {
-    if (tombstones_[i] == static_cast<size_t>(index)) {
-      return std::nullopt;
-    }
+  if (InTombstone(static_cast<size_t>(index))) {
+    return std::nullopt;
   }
   return index;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::InTombstone(size_t index) const -> bool {
+  for (size_t i = 0; i < num_tombstones_; ++i) {
+    if (tombstones_[i] == index) {
+      return true;
+    }
+  }
+  return false;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetLowerBoundIndex(const KeyType &key, const KeyComparator &comparator) const
+    -> std::optional<size_t> {
+  auto end = key_array_ + GetSize();
+  auto wrapped_comparator = GenericComparatorWrapper(comparator);
+  auto itr = std::lower_bound(key_array_, end, key, wrapped_comparator);
+  if (itr == end) {
+    return std::nullopt;
+  }
+  auto index = std::distance(key_array_, itr);
+  if (comparator(*itr, key) == 0) {
+    for (; index < GetSize(); ++index) {
+      if (!InTombstone(static_cast<size_t>(index))) {
+        return index;
+      }
+    }
+    return std::nullopt;
+  }
+  return index;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Next(size_t index) const -> std::optional<size_t> {
+  for (int i = index + 1; i < GetSize(); ++i) {
+    if (!InTombstone(i)) {
+      return i;
+    }
+  }
+  return std::nullopt;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -268,6 +308,9 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::SoftRemove(size_t index) -> void {
  */
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const -> KeyType { return key_array_[index]; }
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const -> ValueType { return rid_array_[index]; }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 
