@@ -120,7 +120,9 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
   auto Remove(size_t index) -> void;
   auto Clean(std::vector<size_t> &to_remove) -> void;
-  auto Lend(BPlusTreeLeafPage *right) -> KeyType;
+  auto LendToRight(BPlusTreeLeafPage *right) -> KeyType;
+  auto LendToLeft(BPlusTreeLeafPage *left) -> KeyType;
+  auto Borrow(BPlusTreeLeafPage *right) -> KeyType;
   auto Merge(BPlusTreeLeafPage *right) -> void;
   auto CleanTombstones() -> void;
   auto Overwrite(const ValueType &value, size_t index) -> void;

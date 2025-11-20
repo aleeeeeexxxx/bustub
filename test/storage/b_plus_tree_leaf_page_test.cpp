@@ -215,21 +215,42 @@ TEST(BPlusTreeLeafPage, RandomRemove) {
   ASSERT_EQ(ret->GetPageId(), static_cast<int32_t>(4));
 }
 
-TEST(BPlusTreeLeafPage, BasicLend) {
+TEST(BPlusTreeLeafPage, LendToRight) {
+  GenericKey<8> index_key;
   char page1[BUSTUB_PAGE_SIZE];
   auto left = PrepareLeafPage(page1, 5, {1, 2, 3, 4, 5});
   char page2[BUSTUB_PAGE_SIZE];
   auto right = PrepareLeafPage(page2, 5, {10});
 
-  left->Lend(right);
+  auto lend = left->LendToRight(right);
+  index_key.SetFromInteger(5);
+  ASSERT_EQ(comparator(lend, index_key), 0);
 
   ASSERT_EQ(left->GetSize(), 4);
   ASSERT_EQ(right->GetSize(), 2);
 
-  auto lend = right->KeyAt(0);
   ASSERT_FALSE(left->LookupIndex(lend, comparator).has_value());  // should remove from left
   ASSERT_TRUE(right->LookupIndex(lend, comparator).has_value());  // should add to right
   ASSERT_EQ(right->LookupIndex(lend, comparator).value(), 0);
+}
+
+TEST(BPlusTreeLeafPage, LendToLeft) {
+  GenericKey<8> index_key;
+  char page1[BUSTUB_PAGE_SIZE];
+  auto left = PrepareLeafPage(page1, 5, {1});
+  char page2[BUSTUB_PAGE_SIZE];
+  auto right = PrepareLeafPage(page2, 5, {10, 11, 12, 13, 14});
+
+  auto lend = right->LendToLeft(left);
+  index_key.SetFromInteger(10);
+  ASSERT_EQ(comparator(lend, index_key), 0);
+
+  ASSERT_EQ(left->GetSize(), 2);
+  ASSERT_EQ(right->GetSize(), 4);
+
+  ASSERT_FALSE(right->LookupIndex(lend, comparator).has_value());  // should remove from left
+  ASSERT_TRUE(left->LookupIndex(lend, comparator).has_value());    // should add to right
+  ASSERT_EQ(left->LookupIndex(lend, comparator).value(), 1);
 }
 
 TEST(BPlusTreeLeafPage, BasicMerge) {

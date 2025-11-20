@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iterator>
+#include <vector>
 
 #include "common/macros.h"
 #include "common/rid.h"
@@ -233,7 +234,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(size_t index) -> void {
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Clean(std::vector<size_t> &to_remove) -> void {
   std::sort(to_remove.begin(), to_remove.end());
-  to_remove.push_back(to_remove.size() + 1);
+  to_remove.push_back(GetSize());
 
   size_t moved = to_remove[0];
   size_t prev = 0;
@@ -250,12 +251,25 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Clean(std::vector<size_t> &to_remove) -> void {
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Lend(BPlusTreeLeafPage *right) -> KeyType {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::LendToRight(BPlusTreeLeafPage *right) -> KeyType {
   KeyType lend_key = key_array_[GetSize() - 1];
   ValueType lend_value = rid_array_[GetSize() - 1];
 
   right->InsertInto(lend_key, lend_value, 0);
 
+  ChangeSizeBy(-1);
+  return lend_key;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::LendToLeft(BPlusTreeLeafPage *left) -> KeyType {
+  KeyType lend_key = key_array_[0];
+  ValueType lend_value = rid_array_[0];
+
+  left->InsertInto(lend_key, lend_value, left->GetSize());
+
+  std::vector<size_t> to_remove{0};
+  Clean(to_remove);
   ChangeSizeBy(-1);
   return lend_key;
 }

@@ -103,6 +103,18 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
   return *this;
 }
 
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator==(const IndexIterator &itr) const -> bool {
+  if (end_ && itr.end_) {
+    return true;
+  }
+
+  return page_id_ == itr.page_id_ && index_ == itr.index_;
+}
+
+FULL_INDEX_TEMPLATE_ARGUMENTS
+auto INDEXITERATOR_TYPE::operator!=(const IndexIterator &itr) const -> bool { return !(*this == itr); }
+
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;
 
 template class IndexIterator<GenericKey<8>, RID, GenericComparator<8>>;

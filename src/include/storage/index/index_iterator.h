@@ -15,6 +15,7 @@
  * For range scan of b+ tree
  */
 #pragma once
+#include <memory>
 #include <utility>
 #include "buffer/traced_buffer_pool_manager.h"
 #include "common/config.h"
@@ -35,7 +36,7 @@ class IndexIterator {
 
  public:
   // you may define your own constructor based on your member variables
-  IndexIterator(KeyComparator comparator);
+  explicit IndexIterator(KeyComparator comparator);
   IndexIterator(page_id_t page_id, size_t index, PageGuard &&guard, std::shared_ptr<TracedBufferPoolManager> bpm,
                 KeyComparator comparator);
 
@@ -53,9 +54,9 @@ class IndexIterator {
 
   auto operator++() -> IndexIterator &;
 
-  auto operator==(const IndexIterator &itr) const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+  auto operator==(const IndexIterator &itr) const -> bool;
 
-  auto operator!=(const IndexIterator &itr) const -> bool { UNIMPLEMENTED("TODO(P2): Add implementation."); }
+  auto operator!=(const IndexIterator &itr) const -> bool;
 
  private:
   void move(IndexIterator &&that);

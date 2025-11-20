@@ -167,13 +167,24 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::SearchCurrentAndSibling(const KeyType &key,
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lend(BPlusTreeInternalPage *right) -> KeyType {
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::LendToRight(BPlusTreeInternalPage *right) -> KeyType {
   KeyType lend_key = key_array_[GetSize() - 1];
   ValueType lend_value = page_id_array_[GetSize() - 1];
 
   right->InsertInto(0, lend_key, lend_value);
 
   ChangeSizeBy(-1);
+  return lend_key;
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::LendToLeft(BPlusTreeInternalPage *left) -> KeyType {
+  KeyType lend_key = key_array_[0];
+  ValueType lend_value = page_id_array_[0];
+
+  left->InsertInto(left->GetSize(), lend_key, lend_value);
+
+  Remove(0);
   return lend_key;
 }
 

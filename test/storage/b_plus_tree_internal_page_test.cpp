@@ -160,7 +160,7 @@ TEST(BPlusTreeInternalPage, SearchSibling) {
   ASSERT_EQ(result.is_left_, false);
 }
 
-TEST(BPlusTreeInternalPage, Lend) {
+TEST(BPlusTreeInternalPage, LendToRight) {
   char page1[BUSTUB_PAGE_SIZE];
   auto *internal = PrepareInternalPage(page1, 6, {0, 1, 2, 3, 4});
 
@@ -169,12 +169,29 @@ TEST(BPlusTreeInternalPage, Lend) {
 
   GenericKey<8> key;
 
-  auto lend = internal->Lend(other);
+  auto lend = internal->LendToRight(other);
   key.SetFromInteger(4);
   ASSERT_EQ(comparator(lend, key), 0);
 
   ASSERT_EQ(internal->Search(key, comparator), 3);
   ASSERT_EQ(other->Search(key, comparator), 4);
+}
+
+TEST(BPlusTreeInternalPage, LendToLeft) {
+  char page1[BUSTUB_PAGE_SIZE];
+  auto *internal = PrepareInternalPage(page1, 6, {0, 1});
+
+  char page2[BUSTUB_PAGE_SIZE];
+  auto *other = PrepareInternalPage(page2, 6, {5, 6, 7, 8});
+
+  GenericKey<8> key;
+
+  auto lend = other->LendToLeft(internal);
+  key.SetFromInteger(5);
+  ASSERT_EQ(comparator(lend, key), 0);
+
+  ASSERT_EQ(internal->Search(key, comparator), 5);
+  ASSERT_EQ(other->Search(key, comparator), 6);
 }
 
 TEST(BPlusTreeInternalPage, Merge) {
