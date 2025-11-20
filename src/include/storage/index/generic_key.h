@@ -106,7 +106,6 @@ class GenericComparator {
 
   GenericComparator &operator=(const GenericComparator &) = default;
 
-
   // constructor
   explicit GenericComparator(Schema *key_schema) : key_schema_(key_schema) {}
 
