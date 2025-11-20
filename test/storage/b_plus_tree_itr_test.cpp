@@ -4,7 +4,7 @@
 #include "storage/index/generic_key.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_leaf_page.h"
-#include "test_util.h"
+#include "test_util.h"  // NOLINT
 
 namespace bustub {
 

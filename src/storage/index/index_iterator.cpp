@@ -34,15 +34,15 @@ INDEXITERATOR_TYPE::IndexIterator(page_id_t page_id, size_t index, PageGuard &&g
       guard_(std::move(guard)),
       end_(false),
       comparator_(comparator),
-      bpm_(std::move(bpm)){};
+      bpm_(std::move(bpm)) {}
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::IndexIterator(KeyComparator comparator) : end_(true), comparator_(comparator){};
+INDEXITERATOR_TYPE::IndexIterator(KeyComparator comparator) : end_(true), comparator_(comparator) {}
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator(IndexIterator &&that) noexcept : comparator_(that.comparator_) {
   move(std::move(that));
-};
+}
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator=(IndexIterator &&that) noexcept -> IndexIterator & {
@@ -51,7 +51,7 @@ auto INDEXITERATOR_TYPE::operator=(IndexIterator &&that) noexcept -> IndexIterat
     comparator_ = that.comparator_;
   }
   return *this;
-};
+}
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 void INDEXITERATOR_TYPE::move(IndexIterator &&that) {
