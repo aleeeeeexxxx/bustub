@@ -59,7 +59,7 @@ class IndexIterator {
   auto operator!=(const IndexIterator &itr) const -> bool;
 
  private:
-  void move(IndexIterator &&that);
+  void Move(IndexIterator &&that);
 
  private:
   page_id_t page_id_;

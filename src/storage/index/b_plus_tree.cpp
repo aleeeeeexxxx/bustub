@@ -478,11 +478,10 @@ auto BPLUSTREE_TYPE::GetIterator(const std::optional<KeyType> &&key) -> INDEXITE
         auto index = leaf_page->GetLowerBoundIndex(key.value(), comparator_);
         if (index.has_value()) {
           return INDEXITERATOR_TYPE(cur_page_id, index.value(), std::move(cur_guard), bpm_, comparator_);
-        } else {
-          cur_page_id = leaf_page->GetNextPageId();
-          continue;
         }
 
+        cur_page_id = leaf_page->GetNextPageId();
+        continue;
       } else {
         return INDEXITERATOR_TYPE(cur_page_id, 0, std::move(cur_guard), bpm_, comparator_);
       }

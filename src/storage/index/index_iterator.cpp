@@ -41,20 +41,20 @@ INDEXITERATOR_TYPE::IndexIterator(KeyComparator comparator) : end_(true), compar
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator(IndexIterator &&that) noexcept : comparator_(that.comparator_) {
-  move(std::move(that));
+  Move(std::move(that));
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto INDEXITERATOR_TYPE::operator=(IndexIterator &&that) noexcept -> IndexIterator & {
   if (this != &that) {
-    move(std::move(that));
     comparator_ = that.comparator_;
+    Move(std::move(that));
   }
   return *this;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-void INDEXITERATOR_TYPE::move(IndexIterator &&that) {
+void INDEXITERATOR_TYPE::Move(IndexIterator &&that) {
   page_id_ = that.page_id_;
   index_ = that.index_;
   guard_ = std::move(that.guard_);
