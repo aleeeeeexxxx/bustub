@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -73,6 +74,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto GetNextPageId() const -> page_id_t;
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
+  auto ValueAt(int index) const -> ValueType;
 
   /**
    * @brief for test only return a string representing all keys in
@@ -118,13 +120,21 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
   auto Remove(size_t index) -> void;
   auto Clean(std::vector<size_t> &to_remove) -> void;
-  auto Lend(BPlusTreeLeafPage *right) -> KeyType;
+  auto LendToRight(BPlusTreeLeafPage *right) -> KeyType;
+  auto LendToLeft(BPlusTreeLeafPage *left) -> KeyType;
+  auto Borrow(BPlusTreeLeafPage *right) -> KeyType;
   auto Merge(BPlusTreeLeafPage *right) -> void;
   auto CleanTombstones() -> void;
   auto Overwrite(const ValueType &value, size_t index) -> void;
   auto SplitTombstones(size_t index, BPlusTreeLeafPage *other) -> void;
   auto CanSafeRemove(size_t index) const -> bool;
   auto SoftRemove(size_t index) -> void;
+
+  // return std::nullopt if target is not in this page
+  // e.g. target is the last one in the page, but has tombstones
+  auto GetLowerBoundIndex(const KeyType &key, const KeyComparator &comparator) const -> std::optional<size_t>;
+  auto InTombstone(size_t index) const -> bool;
+  auto Next(size_t index) const -> std::optional<size_t>;
 
  private:
   page_id_t next_page_id_;

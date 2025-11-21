@@ -204,11 +204,14 @@ class BPlusTree {
   auto Redistribute(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
                     DeleteRet &ret) -> void {
     if (!isLeftPage) {
-      return Redistribute(sibling_page, page, sibling_page_id, cur_page_id, true, ret);
+      sibling_page->LendToLeft(page);
+      ret.start_key_ = sibling_page->KeyAt(0);
+      ret.split_page_id_ = sibling_page_id;
+    } else {
+      ret.start_key_ = sibling_page->LendToRight(page);
+      ret.split_page_id_ = cur_page_id;
     }
 
-    ret.start_key_ = sibling_page->Lend(page);
-    ret.split_page_id_ = cur_page_id;
     ret.deleted_page_id_ = INVALID_PAGE_ID;
   }
 
@@ -233,6 +236,8 @@ class BPlusTree {
 
     Merge<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
   }
+
+  auto GetIterator(const std::optional<KeyType> &&key) -> INDEXITERATOR_TYPE;
 };
 
 /**

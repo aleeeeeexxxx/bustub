@@ -124,7 +124,8 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto SearchCurrentAndSibling(const KeyType &key, CurAndSibling &result, const KeyComparator &comparator) const
       -> void;
   auto Remove(size_t index) -> void;
-  auto Lend(BPlusTreeInternalPage *right) -> KeyType;
+  auto LendToRight(BPlusTreeInternalPage *right) -> KeyType;
+  auto LendToLeft(BPlusTreeInternalPage *left) -> KeyType;
   auto Merge(BPlusTreeInternalPage *right) -> void;
   auto InsertInto(size_t index, const KeyType &key, const ValueType &value) -> void;
   auto GetTargetPageIndex(const KeyType &key, const KeyComparator &comparator) const -> size_t;

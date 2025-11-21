@@ -136,7 +136,7 @@ TEST(BPlusTreeTests, OptimisticDeleteTest) {
   delete bpm;
 }
 
-TEST(BPlusTreeTests, DISABLED_SequentialEdgeMixTest) {  // NOLINT
+TEST(BPlusTreeTests, SequentialEdgeMixTest) {  // NOLINT
   // create KeyComparator and index schema
   auto key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema.get());
@@ -167,7 +167,9 @@ TEST(BPlusTreeTests, DISABLED_SequentialEdgeMixTest) {  // NOLINT
     }
 
     index_key.SetFromInteger(1);
+    tree.Print(bpm);
     tree.Remove(index_key);
+    tree.Print(bpm);
     deleted.push_back(1);
     inserted.erase(std::find(inserted.begin(), inserted.end(), 1));
     auto res = TreeValuesMatch<GenericKey<8>, RID, GenericComparator<8>, 2>(tree, inserted, deleted);
