@@ -473,18 +473,18 @@ auto BPLUSTREE_TYPE::GetIterator(const std::optional<KeyType> &&key) -> INDEXITE
     auto cur_page = cur_guard.As<BPlusTreePage>();
 
     if (cur_page->IsLeafPage()) {
-      if (key.has_value()) {
-        auto leaf_page = cur_guard.As<LeafPage>();
-        auto index = leaf_page->GetLowerBoundIndex(key.value(), comparator_);
-        if (index.has_value()) {
-          return INDEXITERATOR_TYPE(cur_page_id, index.value(), std::move(cur_guard), bpm_, comparator_);
-        }
-
-        cur_page_id = leaf_page->GetNextPageId();
-        continue;
-      } else {
+      if (!key.has_value()) {
         return INDEXITERATOR_TYPE(cur_page_id, 0, std::move(cur_guard), bpm_, comparator_);
       }
+
+      auto leaf_page = cur_guard.As<LeafPage>();
+      auto index = leaf_page->GetLowerBoundIndex(key.value(), comparator_);
+      if (index.has_value()) {
+        return INDEXITERATOR_TYPE(cur_page_id, index.value(), std::move(cur_guard), bpm_, comparator_);
+      }
+
+      cur_page_id = leaf_page->GetNextPageId();
+      continue;
     }
 
     pre_page_guard.Drop();
