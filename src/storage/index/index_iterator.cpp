@@ -88,17 +88,16 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
     if (next_index.has_value()) {
       index_ = next_index.value();
       break;
-    } else {
-      page_id_t next_page_id = page->GetNextPageId();
-
-      if (next_page_id == INVALID_PAGE_ID) {
-        end_ = true;
-        break;
-      } else {
-        guard_ = std::move(bpm_->ReadPage(next_page_id, AccessType::Scan));
-        index_ = -1;
-      }
     }
+
+    page_id_t next_page_id = page->GetNextPageId();
+    if (next_page_id == INVALID_PAGE_ID) {
+      end_ = true;
+      break;
+    }
+
+    guard_ = std::move(bpm_->ReadPage(next_page_id, AccessType::Scan));
+    index_ = -1;
   }
 
   return *this;
