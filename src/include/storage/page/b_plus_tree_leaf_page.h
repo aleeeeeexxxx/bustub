@@ -134,7 +134,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   // e.g. target is the last one in the page, but has tombstones
   auto GetLowerBoundIndex(const KeyType &key, const KeyComparator &comparator) const -> std::optional<size_t>;
   auto InTombstone(size_t index) const -> bool;
-  auto Next(size_t index) const -> std::optional<size_t>;
+  auto Next(int index) const -> std::optional<size_t>;
 
  private:
   page_id_t next_page_id_;

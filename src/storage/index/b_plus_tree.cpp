@@ -179,7 +179,7 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 
   auto page = page_guard.AsMut<BPlusTreePage>();
 
-  if (ctx.IsOptimisticMode() || page->CanReleaseAncestor(true)) {
+  if (!ctx.IsOptimisticMode() && page->CanReleaseAncestor(true)) {
     ctx.guards_.clear();
   }
 
@@ -326,7 +326,7 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
   }
   auto page = guard.AsMut<BPlusTreePage>();
 
-  if (ctx.IsOptimisticMode() || page->CanReleaseAncestor(false)) {
+  if (!ctx.IsOptimisticMode() && page->CanReleaseAncestor(false)) {
     ctx.guards_.clear();
   }
 
@@ -474,7 +474,9 @@ auto BPLUSTREE_TYPE::GetIterator(const std::optional<KeyType> &&key) -> INDEXITE
 
     if (cur_page->IsLeafPage()) {
       if (!key.has_value()) {
-        return INDEXITERATOR_TYPE(cur_page_id, 0, std::move(cur_guard), bpm_, comparator_);
+        auto itr = INDEXITERATOR_TYPE(cur_page_id, -1, std::move(cur_guard), bpm_, comparator_);
+        ++itr;
+        return itr;
       }
 
       auto leaf_page = cur_guard.As<LeafPage>();

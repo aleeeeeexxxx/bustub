@@ -129,7 +129,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::GetLowerBoundIndex(const KeyType &key, const Ke
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Next(size_t index) const -> std::optional<size_t> {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Next(int index) const -> std::optional<size_t> {
   for (int i = index + 1; i < GetSize(); ++i) {
     if (!InTombstone(i)) {
       return i;
@@ -276,12 +276,15 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::LendToLeft(BPlusTreeLeafPage *left) -> KeyType 
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto B_PLUS_TREE_LEAF_PAGE_TYPE::Merge(BPlusTreeLeafPage *right) -> void {
+  SetNextPageId(right->GetNextPageId());
+
   std::memmove(key_array_ + GetSize(), right->key_array_, right->GetSize() * sizeof(KeyType));
   std::memmove(rid_array_ + GetSize(), right->rid_array_, right->GetSize() * sizeof(ValueType));
 
   ChangeSizeBy(right->GetSize());
   right->SetSize(0);
   right->num_tombstones_ = 0;
+  right->SetNextPageId(INVALID_PAGE_ID);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS

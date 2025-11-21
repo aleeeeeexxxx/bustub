@@ -82,21 +82,22 @@ auto INDEXITERATOR_TYPE::operator++() -> INDEXITERATOR_TYPE & {
     return *this;
   }
 
-  auto page = guard_.As<LeafPage>();
-
-  auto next_index = page->Next(index_);
-  if (next_index.has_value()) {
-    index_ = next_index.value();
-  } else {
-    page_id_t next_page_id = page->GetNextPageId();
-
-    if (next_page_id == INVALID_PAGE_ID) {
-      end_ = true;
+  while (true) {
+    auto page = guard_.As<LeafPage>();
+    auto next_index = page->Next(index_);
+    if (next_index.has_value()) {
+      index_ = next_index.value();
+      break;
     } else {
-      guard_ = std::move(bpm_->ReadPage(next_page_id, AccessType::Scan));
-      index_ = 0;
+      page_id_t next_page_id = page->GetNextPageId();
 
-      BUSTUB_ENSURE((guard_.As<LeafPage>())->GetSize() > 0, "Leaf page should have at least one key");
+      if (next_page_id == INVALID_PAGE_ID) {
+        end_ = true;
+        break;
+      } else {
+        guard_ = std::move(bpm_->ReadPage(next_page_id, AccessType::Scan));
+        index_ = -1;
+      }
     }
   }
 
