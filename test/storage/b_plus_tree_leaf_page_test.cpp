@@ -1,4 +1,5 @@
 #include "storage/page/b_plus_tree_leaf_page.h"
+#include <cassert>
 #include "common/config.h"
 #include "gtest/gtest.h"
 #include "storage/index/generic_key.h"
@@ -163,10 +164,12 @@ TEST(BPlusTreeLeafPage, SplitWithTombstones) {
   auto leaf_tombs = leaf->GetTombstones();
   ASSERT_EQ(leaf_tombs.size(), 1);
   ASSERT_EQ(leaf_tombs[0].GetAsInteger(), 1);
+  ASSERT_TRUE(other->InTombstone(1));
 
   auto other_tombs = other->GetTombstones();
   ASSERT_EQ(other_tombs.size(), 1);
   ASSERT_EQ(other_tombs[0].GetAsInteger(), 3);
+  ASSERT_TRUE(other->InTombstone(1));
 }
 
 TEST(BPlusTreeLeafPage, BasicLookup) {

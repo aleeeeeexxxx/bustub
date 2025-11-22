@@ -167,7 +167,7 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::SplitTombstones(size_t index, BPlusTreeLeafPage
     }
   }
   num_tombstones_ = new_num_tombs;
-  std::copy_n(new_tombstones, new_num_tombs, other->tombstones_);
+  std::copy_n(new_tombstones, new_num_tombs, tombstones_);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
