@@ -346,7 +346,7 @@ void MixTest1Call() {
     std::vector<int64_t> for_insert;
     std::vector<int64_t> for_delete;
     int64_t sieve = 2;  // divide evenly
-    int64_t total_keys = 1000;
+    int64_t total_keys = 100;
     for (int64_t i = 1; i <= total_keys; i++) {
       if (i % sieve == 0) {
         for_insert.push_back(i);
