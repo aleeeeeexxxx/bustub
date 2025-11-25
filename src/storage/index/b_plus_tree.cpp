@@ -21,6 +21,8 @@
 
 namespace bustub {
 
+std::atomic<int> Context::global_trace_id_(0);
+
 FULL_INDEX_TEMPLATE_ARGUMENTS
 BPLUSTREE_TYPE::BPlusTree(std::string name, page_id_t header_page_id, BufferPoolManager *buffer_pool_manager,
                           const KeyComparator &comparator, int leaf_max_size, int internal_max_size)
@@ -112,6 +114,9 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
   Context ctx;
   InsertRet ret;
 
+  ctx.trace_id_ = ++Context::global_trace_id_;
+  LOG_DEBUG("[%d] Inserting key %ld", ctx.trace_id_, key.ToString());
+
   // Optimistic Latch Crabbing Protocol
   Insert(ctx, key, value, ret);
 
@@ -120,6 +125,9 @@ auto BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value) -> bool 
     ctx.Reset(false);
     ret.Clear();
     Insert(ctx, key, value, ret);
+    LOG_DEBUG("[%d] Inserted key, pe mode", ctx.trace_id_);
+  } else {
+    LOG_DEBUG("[%d] Imnserted key, op ode", ctx.trace_id_);
   }
 
   return ret.success_ == BPlusTreeOpResult::Success;
@@ -170,6 +178,8 @@ auto BPLUSTREE_TYPE::SplitRootPage(const Context &ctx, InsertRet &ret, BPlusTree
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &value, page_id_t page_id, InsertRet &ret)
     -> void {
+  LOG_DEBUG("[%d] Traversing page %d.", ctx.trace_id_, page_id);
+
   PageGuard page_guard;
   if (ctx.IsOptimisticMode()) {
     page_guard = bpm_->ReadPage(page_id);
@@ -184,7 +194,10 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
   }
 
   if (page->IsLeafPage()) {
+    LOG_DEBUG("[%d] Reached leaf page %d.", ctx.trace_id_, page_id);
+
     if (ctx.IsOptimisticMode()) {  // Upgrade to write lock
+      LOG_DEBUG("[%d] Upgrading to write lock on leaf page %d.", ctx.trace_id_, page_id);
       page_guard.Drop();
       page_guard = bpm_->WritePage(page_id);
     }
@@ -211,15 +224,20 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const Context &ctx, const KeyType &k
   BUSTUB_ENSURE(!ctx.IsOptimisticMode(), "Internal page split should only happen in pessimistic mode");
   BUSTUB_ENSURE(ret.success_ == BPlusTreeOpResult::Success,
                 "Insert result should be success when internal page splits");
+  LOG_DEBUG("[%d] Inserting key %ld into internal page.", ctx.trace_id_, key.ToString());
 
   if (!page->IsFull()) {
     page->Insert(key, page_id, comparator_);
     ret.split_page_id_ = INVALID_PAGE_ID;
+
+    LOG_DEBUG("[%d] Inserted key %ld into internal page without split.", ctx.trace_id_, key.ToString());
     return;
   }
 
   auto [new_page_id, new_internal_page] = CreateNewPage<InternalPage>(internal_max_size_);
   auto start_key = page->SplitAndInsert(new_internal_page, key, page_id, comparator_);
+
+  LOG_DEBUG("[%d] Split internal page. New internal page id: %d.", ctx.trace_id_, new_page_id);
 
   ret.split_page_id_ = new_page_id;
   ret.start_key_ = start_key;
@@ -228,16 +246,21 @@ auto BPLUSTREE_TYPE::InsertIntoInternalPage(const Context &ctx, const KeyType &k
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const ValueType &value, LeafPage *page,
                                         InsertRet &ret) -> void {
+  LOG_DEBUG("[%d] Inserting key %ld into leaf page.", ctx.trace_id_, key.ToString());
   if (page->Exist(key, comparator_)) {
     ret.success_ = BPlusTreeOpResult::Duplicate;
     return;
   }
 
   if (!page->IsFull()) {
+    LOG_DEBUG("[%d] Inserting key %ld into leaf page.", ctx.trace_id_, key.ToString());
+
     ret.success_ = BPlusTreeOpResult::Success;
     page->Insert(key, value, comparator_);
     return;
   }
+
+  LOG_DEBUG("[%d] Leaf page full when inserting key %ld.", ctx.trace_id_, key.ToString());
 
   if (ctx.IsOptimisticMode()) {
     ret.success_ = BPlusTreeOpResult::OptimisticLockFailed;
@@ -246,6 +269,8 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const 
 
   auto [new_page_id, new_leaf_page] = CreateNewPage<LeafPage>(leaf_max_size_);
   page->Split(new_page_id, new_leaf_page);
+
+  LOG_DEBUG("[%d] Split leaf page. New leaf page id: %d.", ctx.trace_id_, new_page_id);
 
   auto start_key = new_leaf_page->KeyAt(0);
   if (comparator_(key, start_key) < 0) {
@@ -276,6 +301,9 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key) {
   Context ctx;
   DeleteRet ret;
 
+  ctx.trace_id_ = ++Context::global_trace_id_;
+  LOG_DEBUG("[%d] Removing key %ld", ctx.trace_id_, key.ToString());
+
   // Optimistic Latch Crabbing Protocol
   Remove(ctx, key, ret);
 
@@ -284,6 +312,9 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key) {
     ctx.Reset(false);
     ret.Clear();
     Remove(ctx, key, ret);
+    LOG_DEBUG("[%d] Removed key, pe mode", ctx.trace_id_);
+  } else {
+    LOG_DEBUG("[%d] Removed key, op mode", ctx.trace_id_);
   }
 }
 
@@ -318,6 +349,8 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, DeleteRet &ret) ->
 FULL_INDEX_TEMPLATE_ARGUMENTS
 auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, page_id_t sibling, bool isLeftPage,
                             DeleteRet &ret) -> void {
+  LOG_DEBUG("[%d] Traversing page %d, sibling %d.", ctx.trace_id_, cur, sibling);
+
   PageGuard guard;
   if (ctx.IsOptimisticMode()) {
     guard = bpm_->ReadPage(cur);
@@ -331,6 +364,8 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
   }
 
   if (page->IsLeafPage()) {
+    LOG_DEBUG("[%d] Reached leaf page %d.", ctx.trace_id_, cur);
+
     guard.Drop();
     guard = bpm_->WritePage(cur);
 
@@ -377,7 +412,6 @@ auto BPLUSTREE_TYPE::DeleteFromInternalPage(const Context &ctx, size_t to_delete
   if (sibling_page_id == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur_page_id), "Only root page can have no sibling");
 
-    LOG_DEBUG("[InternalPage] No sibling page for %d", cur);
     if (page->GetSize() == 1) {
       ret.split_page_id_ = page->ValueAt(0);
     }
@@ -387,7 +421,7 @@ auto BPLUSTREE_TYPE::DeleteFromInternalPage(const Context &ctx, size_t to_delete
   auto guard = bpm_->WritePage(sibling_page_id);
   auto sibling_page = guard.AsMut<InternalPage>();
 
-  Balance<InternalPage>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
+  Balance<InternalPage>(ctx, page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -395,6 +429,8 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
                                         page_id_t sibling, bool isLeftPage, DeleteRet &ret) -> void {
   auto index = page->LookupIndex(key, comparator_);
   if (!index.has_value()) {
+    LOG_DEBUG("[%d] Key %ld not found in leaf page %d.", ctx.trace_id_, key.ToString(), cur);
+
     ret.success_ = BPlusTreeOpResult::NotFound;
     return;
   }
@@ -415,12 +451,13 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
 
   page->Remove(to_remove);
   if (!page->Underflow()) {
+    LOG_DEBUG("[%d] Removed key %ld from leaf page %d without underflow.", ctx.trace_id_, key.ToString(), cur);
     return;
   }
 
   if (sibling == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur), "Only root page can have no sibling");
-    LOG_DEBUG("[LeafPage] No sibling page for %d, skip deleting", cur);
+    LOG_DEBUG("[%d] No sibling page for leaf page %d, skip deleting", ctx.trace_id_, cur);
     if (page->GetSize() == 0) {
       ret.deleted_page_id_ = cur;
     }
@@ -432,7 +469,7 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
   auto sibling_page = guard.AsMut<LeafPage>();
   sibling_page->CleanTombstones();
 
-  Balance<LeafPage>(page, sibling_page, cur, sibling, isLeftPage, ret);
+  Balance<LeafPage>(ctx, page, sibling_page, cur, sibling, isLeftPage, ret);
 }
 
 /*****************************************************************************

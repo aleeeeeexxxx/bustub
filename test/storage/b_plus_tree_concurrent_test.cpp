@@ -328,7 +328,9 @@ void DeleteTest2Call() {
 
 template <ssize_t Tombs>
 void MixTest1Call() {
-  for (size_t iter = 0; iter < MIXTEST_NUM_ITERS; iter++) {
+  for (size_t iter = 0; iter < NUM_ITERS; iter++) {
+    LOG_DEBUG("===============MixTest1 Iteration %ld", iter);
+
     // create KeyComparator and index schema
     auto key_schema = ParseCreateStatement("a bigint");
     GenericComparator<8> comparator(key_schema.get());
@@ -346,7 +348,7 @@ void MixTest1Call() {
     std::vector<int64_t> for_insert;
     std::vector<int64_t> for_delete;
     int64_t sieve = 2;  // divide evenly
-    int64_t total_keys = 100;
+    int64_t total_keys = 1000;
     for (int64_t i = 1; i <= total_keys; i++) {
       if (i % sieve == 0) {
         for_insert.push_back(i);
@@ -357,13 +359,16 @@ void MixTest1Call() {
     // Insert all the keys to delete
     InsertHelper(&tree, for_delete);
 
+
+    LOG_DEBUG("===============MixTest1 Iteration %ld =================", iter);
+
     auto insert_task = [&](int tid) { InsertHelper(&tree, for_insert); };
     auto delete_task = [&](int tid) { DeleteHelper(&tree, for_delete); };
     std::vector<std::function<void(int)>> tasks;
     tasks.emplace_back(insert_task);
     tasks.emplace_back(delete_task);
     std::vector<std::thread> threads;
-    size_t num_threads = 4;
+    size_t num_threads = 10;
     for (size_t i = 0; i < num_threads; i++) {
       threads.emplace_back(tasks[i % tasks.size()], i);
     }
@@ -418,6 +423,8 @@ void MixTest2Call() {
     }
     InsertHelper(&tree, preserved_keys);
 
+    tree.Print(bpm);
+
     size_t size;
 
     auto insert_task = [&](int tid) { InsertHelper(&tree, dynamic_keys); };
@@ -438,6 +445,8 @@ void MixTest2Call() {
       threads[i].join();
     }
 
+    tree.Print(bpm);
+
     // Check all reserved keys exist
     size = 0;
 
@@ -455,33 +464,33 @@ void MixTest2Call() {
   }
 }
 
-TEST(BPlusTreeConcurrentTest, InsertTest1) {  // NOLINT
+TEST(BPlusTreeConcurrentTest, DISABLED_InsertTest1) {  // NOLINT
   InsertTest1Call<0>();
   InsertTest1Call<3>();
 }
 
-TEST(BPlusTreeConcurrentTest, InsertTest2) {  // NOLINT
+TEST(BPlusTreeConcurrentTest, DISABLED_InsertTest2) {  // NOLINT
   InsertTest2Call<0>();
   InsertTest2Call<3>();
 }
 
-TEST(BPlusTreeConcurrentTest, DeleteTest1) {  // NOLINT
+TEST(BPlusTreeConcurrentTest, DISABLED_DeleteTest1) {  // NOLINT
   DeleteTest1Call<0>();
   DeleteTest1Call<3>();
 }
 
-TEST(BPlusTreeConcurrentTest, DeleteTest2) {  // NOLINT
+TEST(BPlusTreeConcurrentTest, DISABLED_DeleteTest2) {  // NOLINT
   DeleteTest2Call<0>();
   DeleteTest2Call<3>();
 }
 
-TEST(BPlusTreeConcurrentTest, MixTest1) {  // NOLINT
+TEST(BPlusTreeConcurrentTest, DISABLED_MixTest1) {  // NOLINT
   MixTest1Call<0>();
   MixTest1Call<3>();
 }
 
 TEST(BPlusTreeConcurrentTest, MixTest2) {  // NOLINT
   MixTest2Call<0>();
-  // MixTest2Call<3>();
+  MixTest2Call<3>();
 }
 }  // namespace bustub

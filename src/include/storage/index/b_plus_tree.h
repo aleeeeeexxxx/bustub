@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "common/config.h"
+#include "common/logger.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_header_page.h"
 #include "storage/page/b_plus_tree_internal_page.h"
@@ -89,6 +90,9 @@ class Context {
   bool optimistic_mode_{true};
 
   page_id_t root_page_id_{INVALID_PAGE_ID};
+
+  int trace_id_;
+  static std::atomic<int> global_trace_id_;
 
  public:
   Context() = default;
@@ -228,12 +232,14 @@ class BPlusTree {
   }
 
   template <typename T>
-  auto Balance(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
+  auto Balance(const Context& ctx, T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
                DeleteRet &ret) -> void {
     if (sibling_page->CanLendAKey()) {
+      LOG_DEBUG("[%d] Redistributing keys between pages %d and %d.", ctx.trace_id_, cur_page_id, sibling_page_id);
       return Redistribute<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
     }
 
+    LOG_DEBUG("[%d] Merging pages %d and %d.", ctx.trace_id_, cur_page_id, sibling_page_id);
     Merge<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
   }
 
