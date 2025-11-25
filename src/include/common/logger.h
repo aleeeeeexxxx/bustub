@@ -71,7 +71,7 @@ static constexpr auto PastLastSlash(cstr a) -> cstr { return PastLastSlash(a, a)
 // #pragma message("Warning: LOG_LEVEL compile option was not explicitly
 // given.")
 #ifndef NDEBUG
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+#define LOG_LEVEL LOG_LEVEL_INFO
 // #pragma message("LOG_LEVEL_DEBUG is used instead as DEBUG option is on.")
 #else
 // #pragma message("LOG_LEVEL_WARN is used instead as DEBUG option is off.")
