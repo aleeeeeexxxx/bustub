@@ -67,6 +67,7 @@ void PageGuard::MoveFrom(PageGuard &&that) {
   bpm_latch_ = std::move(that.bpm_latch_);
   disk_scheduler_ = std::move(that.disk_scheduler_);
   is_valid_ = that.is_valid_;
+  shared_ = that.shared_;
 
   that.is_valid_ = false;
 }
