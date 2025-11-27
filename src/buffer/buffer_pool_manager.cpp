@@ -176,7 +176,7 @@ void BufferPoolManager::InitFrame(const std::shared_ptr<FrameHeader> &frame, pag
   RefreshPage(frame, true);
 
   frame->is_dirty_ = false;
-  frame->page_id_ = page_id; // have to be set after flush
+  frame->page_id_ = page_id;  // have to be set after flush
 
   // read new page from disk
   RefreshPage(frame, false);

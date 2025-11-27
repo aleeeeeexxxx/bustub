@@ -430,7 +430,7 @@ void MixTest2Call() {
     tasks.emplace_back(delete_task);
     tasks.emplace_back(lookup_task);
 
-  size_t num_threads = 6;
+    size_t num_threads = 6;
     for (size_t i = 0; i < num_threads; i++) {
       threads.emplace_back(tasks[i % tasks.size()], i);
     }
