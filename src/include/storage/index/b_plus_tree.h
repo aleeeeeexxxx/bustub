@@ -144,7 +144,7 @@ class BPlusTree {
 
   auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
 
-  void Print(BufferPoolManager *bpm);
+  void Print();
 
   void Draw(BufferPoolManager *bpm, const std::filesystem::path &outf);
 

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <algorithm>
+#include <cstddef>
 #include <cstring>
 #include <iterator>
 #include <vector>
@@ -222,32 +223,35 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(size_t index) -> void {
     return;
   }
 
-  std::vector<size_t> to_remove{tombstones_, tombstones_ + num_tombstones_};
-  to_remove.push_back(index);
+  std::unordered_set<size_t> to_remove_set;
 
-  Clean(to_remove);
+  for (size_t i = 0; i < num_tombstones_; ++i) {
+    to_remove_set.insert(tombstones_[i]);
+  }
+  to_remove_set.insert(index);
+
+  Clean(to_remove_set);
 
   ChangeSizeBy(-1 * (num_tombstones_ + 1));
   num_tombstones_ = 0;
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::Clean(std::vector<size_t> &to_remove) -> void {
-  std::sort(to_remove.begin(), to_remove.end());
-  to_remove.push_back(GetSize());
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::Clean(std::unordered_set<size_t> &to_remove) -> void {
+  KeyType new_key_array[LEAF_PAGE_SLOT_CNT];
+  ValueType new_rid_array[LEAF_PAGE_SLOT_CNT];
 
-  size_t moved = to_remove[0];
-  size_t prev = 0;
-
-  for (size_t cur = 1; cur < to_remove.size(); ++cur) {
-    auto n = to_remove[cur] - to_remove[prev] - 1;
-
-    std::memmove(key_array_ + moved, key_array_ + to_remove[prev] + 1, n * sizeof(KeyType));
-    std::memmove(rid_array_ + moved, rid_array_ + to_remove[prev] + 1, n * sizeof(ValueType));
-
-    prev = cur;
-    moved += n;
+  size_t j = 0;
+  for (size_t i = 0; i < static_cast<size_t>(GetSize()); ++i) {
+    if (to_remove.find(i) == to_remove.end()) {
+      new_key_array[j] = key_array_[i];
+      new_rid_array[j] = rid_array_[i];
+      ++j;
+    }
   }
+
+  std::copy_n(new_key_array, j, key_array_);
+  std::copy_n(new_rid_array, j, rid_array_);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -268,8 +272,10 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::LendToLeft(BPlusTreeLeafPage *left) -> KeyType 
 
   left->InsertInto(lend_key, lend_value, left->GetSize());
 
-  std::vector<size_t> to_remove{0};
-  Clean(to_remove);
+  std::unordered_set<size_t> to_remove_set;
+  to_remove_set.insert(0);
+
+  Clean(to_remove_set);
   ChangeSizeBy(-1);
   return lend_key;
 }
@@ -293,14 +299,18 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CleanTombstones() -> void {
     return;
   }
 
-  std::vector<size_t> to_remove{tombstones_, tombstones_ + num_tombstones_};
-  Clean(to_remove);
+  std::unordered_set<size_t> to_remove_set;
+  for (size_t i = 0; i < num_tombstones_; ++i) {
+    to_remove_set.insert(tombstones_[i]);
+  }
+
+  Clean(to_remove_set);
 
   ChangeSizeBy(-1 * num_tombstones_);
   num_tombstones_ = 0;
 }
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove() const -> bool {
   if (LEAF_PAGE_TOMB_CNT == 0) {
     return GetSize() - 1 >= GetMinSize();
   }
@@ -312,11 +322,14 @@ auto B_PLUS_TREE_LEAF_PAGE_TYPE::CanSafeRemove(size_t index) const -> bool {
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-auto B_PLUS_TREE_LEAF_PAGE_TYPE::SoftRemove(size_t index) -> void {
+auto B_PLUS_TREE_LEAF_PAGE_TYPE::SoftRemove(const KeyType &key, const KeyComparator &comparator) -> void {
   if (num_tombstones_ >= LEAF_PAGE_TOMB_CNT) {
     CleanTombstones();
   }
-  Remove(index);
+  auto index = LookupIndex(key, comparator);
+
+  BUSTUB_ENSURE(index.has_value(), "Key to soft remove must exist");
+  Remove(index.value());
 }
 
 /*

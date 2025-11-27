@@ -14,6 +14,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -119,7 +120,7 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto LookupIndex(const KeyType &key, const KeyComparator &comparator) const -> std::optional<size_t>;
   auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> std::optional<ValueType>;
   auto Remove(size_t index) -> void;
-  auto Clean(std::vector<size_t> &to_remove) -> void;
+  auto Clean(std::unordered_set<size_t> &to_remove) -> void;
   auto LendToRight(BPlusTreeLeafPage *right) -> KeyType;
   auto LendToLeft(BPlusTreeLeafPage *left) -> KeyType;
   auto Borrow(BPlusTreeLeafPage *right) -> KeyType;
@@ -127,8 +128,8 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   auto CleanTombstones() -> void;
   auto Overwrite(const ValueType &value, size_t index) -> void;
   auto SplitTombstones(size_t index, BPlusTreeLeafPage *other) -> void;
-  auto CanSafeRemove(size_t index) const -> bool;
-  auto SoftRemove(size_t index) -> void;
+  auto CanSafeRemove() const -> bool;
+  auto SoftRemove(const KeyType &key, const KeyComparator &comparator) -> void;
 
   // return std::nullopt if target is not in this page
   // e.g. target is the last one in the page, but has tombstones

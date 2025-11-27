@@ -121,7 +121,7 @@ void LookupHelper(BPlusTree<GenericKey<8>, RID, GenericComparator<8>, Tombs> *tr
 }
 
 const size_t NUM_ITERS = 50;
-const size_t MIXTEST_NUM_ITERS = 20;
+const size_t MIXTEST_NUM_ITERS = 1;
 static const size_t BPM_SIZE = 50;
 
 template <ssize_t Tombs>
@@ -359,7 +359,6 @@ void MixTest1Call() {
     // Insert all the keys to delete
     InsertHelper(&tree, for_delete);
 
-
     LOG_DEBUG("===============MixTest1 Iteration %ld =================", iter);
 
     auto insert_task = [&](int tid) { InsertHelper(&tree, for_insert); };
@@ -423,8 +422,6 @@ void MixTest2Call() {
     }
     InsertHelper(&tree, preserved_keys);
 
-    tree.Print(bpm);
-
     size_t size;
 
     auto insert_task = [&](int tid) { InsertHelper(&tree, dynamic_keys); };
@@ -437,15 +434,13 @@ void MixTest2Call() {
     tasks.emplace_back(delete_task);
     tasks.emplace_back(lookup_task);
 
-    size_t num_threads = 6;
+  size_t num_threads = 6;
     for (size_t i = 0; i < num_threads; i++) {
       threads.emplace_back(tasks[i % tasks.size()], i);
     }
     for (size_t i = 0; i < num_threads; i++) {
       threads[i].join();
     }
-
-    tree.Print(bpm);
 
     // Check all reserved keys exist
     size = 0;

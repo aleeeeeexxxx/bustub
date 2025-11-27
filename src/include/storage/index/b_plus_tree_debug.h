@@ -65,11 +65,11 @@ void BPLUSTREE_TYPE::RemoveFromFile(const std::filesystem::path &file_name) {
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::Print(BufferPoolManager *bpm) {
+void BPLUSTREE_TYPE::Print() {
   std::cout << "=======================" << std::endl;
   auto root_page_id = GetRootPageId();
   if (root_page_id != INVALID_PAGE_ID) {
-    auto guard = bpm->ReadPage(root_page_id);
+    auto guard = bpm_->ReadPage(root_page_id);
     PrintTree(guard.GetPageId(), guard.template As<BPlusTreePage>());
   }
 }

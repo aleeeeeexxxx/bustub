@@ -172,7 +172,6 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
 }
 
 void BufferPoolManager::InitFrame(const std::shared_ptr<FrameHeader> &frame, page_id_t page_id) {
-  LOG_DEBUG("Initializing frame %d for page %d.", frame->frame_id_, page_id);
   // flush old page if dirty
   RefreshPage(frame, true);
 
@@ -212,7 +211,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
 
     // If the page is already in the buffer pool, return the corresponding frame.
     if (auto frame_itr = page_table_.find(page_id); frame_itr != page_table_.end()) {
-      LOG_DEBUG("Page %d found in buffer pool, frame id %d", page_id, frame_itr->second);
       frame = frames_.at(frame_itr->second);
       frame->IncreasePinCount();
     } else {
@@ -222,8 +220,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
         // Try to find a free frame first.
         free_frame_id = free_frames_.front();
         free_frames_.pop_front();
-
-        LOG_DEBUG("Free frame available for page %d, frame=%d.", page_id, free_frame_id);
       } else {
         // If there are no free frames, try to evict a frame from the replacer.
         auto evicted_frame_id = replacer_->Evict();
@@ -231,7 +227,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
           return std::nullopt;
         }
         free_frame_id = evicted_frame_id.value();
-        LOG_DEBUG("Evicted frame available for page %d, frame=%d.", page_id, free_frame_id);
       }
 
       frame = frames_.at(free_frame_id);
@@ -300,7 +295,6 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
     return std::nullopt;
   }
 
-  LOG_DEBUG("frame id %d acquired for write", frame.value()->frame_id_);
   return WritePageGuard(page_id, frame.value(), replacer_, bpm_latch_, disk_scheduler_);
 }
 

@@ -253,7 +253,7 @@ auto BPLUSTREE_TYPE::InsertIntoLeafPage(Context &ctx, const KeyType &key, const 
   }
 
   if (!page->IsFull()) {
-    LOG_DEBUG("[%d] Inserting key %ld into leaf page.", ctx.trace_id_, key.ToString());
+    LOG_DEBUG("[%d] Inserting key %ld into non-full leaf page.", ctx.trace_id_, key.ToString());
 
     ret.success_ = BPlusTreeOpResult::Success;
     page->Insert(key, value, comparator_);
@@ -370,7 +370,9 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
     guard = bpm_->WritePage(cur);
 
     auto leaf_page = guard.AsMut<LeafPage>();
-    return DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
+
+    DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
+    return;
   }
 
   auto internal_page = guard.AsMut<InternalPage>();
@@ -437,8 +439,8 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
 
   auto to_remove = index.value();
   if (ctx.IsOptimisticMode()) {
-    if (page->CanSafeRemove(to_remove)) {
-      page->SoftRemove(to_remove);
+    if (page->CanSafeRemove()) {
+      page->SoftRemove(key, comparator_);
 
       ret.success_ = BPlusTreeOpResult::Success;
     } else {

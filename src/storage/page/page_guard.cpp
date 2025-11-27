@@ -32,13 +32,11 @@ PageGuard::PageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> frame, std:
       replacer_(std::move(replacer)),
       bpm_latch_(std::move(bpm_latch)),
       disk_scheduler_(std::move(disk_scheduler)) {
-  LOG_DEBUG("Locking page %d , mode=%s, frame=%d.", page_id_, shared_ ? "shared" : "exclusive", frame_->frame_id_);
   if (shared_) {
     frame_->rwlatch_.lock_shared();
   } else {
     frame_->rwlatch_.lock();
   }
-  LOG_DEBUG("Locked page %d , mode=%s, frame=%d.", page_id_, shared_ ? "shared" : "exclusive", frame_->frame_id_);
   is_valid_ = true;
 }
 
@@ -136,13 +134,10 @@ void PageGuard::Drop() {
     frame_->rwlatch_.unlock();
   }
 
-  LOG_DEBUG("Page %d unlocked, mode=%s, frame=%d.", page_id_, shared_ ? "shared" : "exclusive", frame_->frame_id_);
-
   {
     std::lock_guard<std::mutex> lock(*bpm_latch_);
     frame_->pin_count_--;
     if (frame_->pin_count_ == 0) {
-      LOG_DEBUG("frame %d for page %d is now unpinned.", frame_->frame_id_, page_id_);
       replacer_->SetEvictable(frame_->frame_id_, true);
     }
   }
