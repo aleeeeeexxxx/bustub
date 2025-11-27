@@ -109,7 +109,7 @@ class Context {
 FULL_INDEX_TEMPLATE_ARGUMENTS_DEFN
 class BPlusTree {
   using InternalPage = BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator>;
-  using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>;
+  using LeafPage = BPlusTreeLeafPage<KeyType, ValueType, KeyComparator, NumTombs>;
   using InsertRet = BPlusTreeInsertRet<KeyType>;
   using DeleteRet = BPlusTreeDeleteRet<KeyType>;
 
@@ -233,7 +233,6 @@ class BPlusTree {
     if (sibling_page->CanLendAKey()) {
       return Redistribute<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
     }
-
     Merge<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
   }
 

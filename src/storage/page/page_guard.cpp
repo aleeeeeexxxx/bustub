@@ -14,6 +14,7 @@
 #include <memory>
 #include <utility>
 #include "buffer/arc_replacer.h"
+#include "common/logger.h"
 #include "common/macros.h"
 
 namespace bustub {
@@ -67,6 +68,7 @@ void PageGuard::MoveFrom(PageGuard &&that) {
   bpm_latch_ = std::move(that.bpm_latch_);
   disk_scheduler_ = std::move(that.disk_scheduler_);
   is_valid_ = that.is_valid_;
+  shared_ = that.shared_;
 
   that.is_valid_ = false;
 }
@@ -132,9 +134,12 @@ void PageGuard::Drop() {
     frame_->rwlatch_.unlock();
   }
 
-  frame_->pin_count_--;
-  if (frame_->pin_count_ == 0) {
-    replacer_->SetEvictable(frame_->frame_id_, true);
+  {
+    std::lock_guard<std::mutex> lock(*bpm_latch_);
+    frame_->pin_count_--;
+    if (frame_->pin_count_ == 0) {
+      replacer_->SetEvictable(frame_->frame_id_, true);
+    }
   }
 }
 

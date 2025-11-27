@@ -44,7 +44,7 @@ auto BPlusTreePage::GetMinSize() const -> int { return std::ceil(static_cast<dou
 
 auto BPlusTreePage::CanReleaseAncestor(bool insert) const -> bool {
   if (insert) {
-    return GetSize() < GetMaxSize();
+    return !IsFull();
   }
   return GetSize() > GetMinSize();
 }

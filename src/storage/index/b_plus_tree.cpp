@@ -13,7 +13,6 @@
 #include "storage/index/b_plus_tree.h"
 #include "buffer/traced_buffer_pool_manager.h"
 #include "common/config.h"
-#include "common/logger.h"
 #include "common/macros.h"
 #include "storage/index/b_plus_tree_debug.h"
 #include "storage/index/index_iterator.h"
@@ -179,7 +178,7 @@ auto BPLUSTREE_TYPE::Insert(Context &ctx, const KeyType &key, const ValueType &v
 
   auto page = page_guard.AsMut<BPlusTreePage>();
 
-  if (ctx.IsOptimisticMode() || page->CanReleaseAncestor(true)) {
+  if (!ctx.IsOptimisticMode() && page->CanReleaseAncestor(true)) {
     ctx.guards_.clear();
   }
 
@@ -326,7 +325,7 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
   }
   auto page = guard.AsMut<BPlusTreePage>();
 
-  if (ctx.IsOptimisticMode() || page->CanReleaseAncestor(false)) {
+  if (!ctx.IsOptimisticMode() && page->CanReleaseAncestor(false)) {
     ctx.guards_.clear();
   }
 
@@ -335,7 +334,9 @@ auto BPLUSTREE_TYPE::Remove(Context &ctx, const KeyType &key, page_id_t cur, pag
     guard = bpm_->WritePage(cur);
 
     auto leaf_page = guard.AsMut<LeafPage>();
-    return DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
+
+    DeleteFromLeafPage(ctx, key, cur, leaf_page, sibling, isLeftPage, ret);
+    return;
   }
 
   auto internal_page = guard.AsMut<InternalPage>();
@@ -377,7 +378,6 @@ auto BPLUSTREE_TYPE::DeleteFromInternalPage(const Context &ctx, size_t to_delete
   if (sibling_page_id == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur_page_id), "Only root page can have no sibling");
 
-    LOG_DEBUG("[InternalPage] No sibling page for %d", cur);
     if (page->GetSize() == 1) {
       ret.split_page_id_ = page->ValueAt(0);
     }
@@ -401,8 +401,8 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
 
   auto to_remove = index.value();
   if (ctx.IsOptimisticMode()) {
-    if (page->CanSafeRemove(to_remove)) {
-      page->SoftRemove(to_remove);
+    if (page->CanSafeRemove()) {
+      page->SoftRemove(key, comparator_);
 
       ret.success_ = BPlusTreeOpResult::Success;
     } else {
@@ -420,7 +420,6 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
 
   if (sibling == INVALID_PAGE_ID) {
     BUSTUB_ENSURE(ctx.IsRootPage(cur), "Only root page can have no sibling");
-    LOG_DEBUG("[LeafPage] No sibling page for %d, skip deleting", cur);
     if (page->GetSize() == 0) {
       ret.deleted_page_id_ = cur;
     }
@@ -474,7 +473,9 @@ auto BPLUSTREE_TYPE::GetIterator(const std::optional<KeyType> &&key) -> INDEXITE
 
     if (cur_page->IsLeafPage()) {
       if (!key.has_value()) {
-        return INDEXITERATOR_TYPE(cur_page_id, 0, std::move(cur_guard), bpm_, comparator_);
+        auto itr = INDEXITERATOR_TYPE(cur_page_id, -1, std::move(cur_guard), bpm_, comparator_);
+        ++itr;
+        return itr;
       }
 
       auto leaf_page = cur_guard.As<LeafPage>();

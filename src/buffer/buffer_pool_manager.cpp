@@ -17,7 +17,6 @@
 #include <vector>
 #include "buffer/arc_replacer.h"
 #include "common/config.h"
-#include "common/logger.h"
 #include "common/macros.h"
 #include "storage/disk/disk_scheduler.h"
 #include "storage/page/page_guard.h"
@@ -174,9 +173,8 @@ void BufferPoolManager::InitFrame(const std::shared_ptr<FrameHeader> &frame, pag
   // flush old page if dirty
   RefreshPage(frame, true);
 
-  frame->Reset();
-  frame->page_id_ = page_id;
-  frame->IncreasePinCount();
+  frame->is_dirty_ = false;
+  frame->page_id_ = page_id;  // have to be set after flush
 
   // read new page from disk
   RefreshPage(frame, false);
@@ -211,7 +209,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
 
     // If the page is already in the buffer pool, return the corresponding frame.
     if (auto frame_itr = page_table_.find(page_id); frame_itr != page_table_.end()) {
-      LOG_DEBUG("Page %d is already in the buffer pool.", page_id);
       frame = frames_.at(frame_itr->second);
       frame->IncreasePinCount();
     } else {
@@ -221,7 +218,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
         // Try to find a free frame first.
         free_frame_id = free_frames_.front();
         free_frames_.pop_front();
-        LOG_DEBUG("Allocated free frame %d for page %d.", free_frame_id, page_id);
       } else {
         // If there are no free frames, try to evict a frame from the replacer.
         auto evicted_frame_id = replacer_->Evict();
@@ -229,11 +225,11 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
           return std::nullopt;
         }
         free_frame_id = evicted_frame_id.value();
-        LOG_DEBUG("Evicted frame %d for page %d.", free_frame_id, page_id);
       }
 
       frame = frames_.at(free_frame_id);
       frame->ResetFlag();
+      frame->pin_count_.store(1);
 
       if (frame->page_id_ != INVALID_PAGE_ID) {
         // Remove the old page from the page table.
@@ -292,8 +288,6 @@ auto BufferPoolManager::GetOrBindFrame(page_id_t page_id) -> std::optional<std::
  * returns `std::nullopt`; otherwise, returns a `WritePageGuard` ensuring exclusive and mutable access to a page's data.
  */
 auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type) -> std::optional<WritePageGuard> {
-  LOG_DEBUG("CheckedWritePage: page_id=%d, access_type=%d", page_id, static_cast<int>(access_type));
-
   auto frame = GetOrBindFrame(page_id);
   if (!frame.has_value()) {
     return std::nullopt;
@@ -327,8 +321,6 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
  * returns `std::nullopt`; otherwise, returns a `ReadPageGuard` ensuring shared and read-only access to a page's data.
  */
 auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_type) -> std::optional<ReadPageGuard> {
-  LOG_DEBUG("CheckedReadPage: page_id=%d, access_type=%d", page_id, static_cast<int>(access_type));
-
   auto frame = GetOrBindFrame(page_id);
   if (!frame.has_value()) {
     return std::nullopt;

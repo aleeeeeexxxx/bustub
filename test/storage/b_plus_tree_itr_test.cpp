@@ -99,4 +99,39 @@ TEST(BPlusTreeItr, IteratorWithTombstones) {
   ASSERT_TRUE(itr.IsEnd());
 }
 
+TEST(BPlusTreeItr, IteratorWithTombstones2) {
+  auto disk_manager = std::make_unique<DiskManager>(db_fname);
+  auto bpm = std::make_unique<BufferPoolManager>(FRAMES, disk_manager.get());
+  auto traced_bpm = std::make_shared<TracedBufferPoolManager>(bpm.get());
+
+  auto page3 = PrepareLeafPage(traced_bpm, 5, {3, 4, 5}, INVALID_PAGE_ID);
+  auto page2 = PrepareLeafPage(traced_bpm, 5, {2}, page3);
+  auto page1 = PrepareLeafPage(traced_bpm, 5, {1}, page2);
+
+  auto guard1 = bpm->ReadPage(page1);
+  auto leaf1 = guard1.AsMut<LeafPage>();
+  leaf1->Remove(0);
+
+  auto guard3 = bpm->ReadPage(page3);
+  auto leaf3 = guard3.AsMut<LeafPage>();
+  leaf3->Remove(0);
+  leaf3->Remove(1);
+  leaf3->Remove(2);
+
+  Itr itr(page1, -1, std::move(guard1), traced_bpm, comparator);
+  ++itr;
+
+  std::vector<int> expected_keys = {2};
+  for (auto key : expected_keys) {
+    ASSERT_FALSE(itr.IsEnd());
+
+    auto [k, v] = *itr;
+    ASSERT_EQ(key, v.GetPageId());
+
+    ++itr;
+  }
+
+  ASSERT_TRUE(itr.IsEnd());
+}
+
 }  // namespace bustub
