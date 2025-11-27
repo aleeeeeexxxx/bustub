@@ -13,7 +13,6 @@
 #include "storage/index/b_plus_tree.h"
 #include "buffer/traced_buffer_pool_manager.h"
 #include "common/config.h"
-#include "common/logger.h"
 #include "common/macros.h"
 #include "storage/index/b_plus_tree_debug.h"
 #include "storage/index/index_iterator.h"
@@ -388,7 +387,7 @@ auto BPLUSTREE_TYPE::DeleteFromInternalPage(const Context &ctx, size_t to_delete
   auto guard = bpm_->WritePage(sibling_page_id);
   auto sibling_page = guard.AsMut<InternalPage>();
 
-  Balance<InternalPage>(ctx, page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
+  Balance<InternalPage>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
 }
 
 FULL_INDEX_TEMPLATE_ARGUMENTS
@@ -432,7 +431,7 @@ auto BPLUSTREE_TYPE::DeleteFromLeafPage(Context &ctx, const KeyType &key, page_i
   auto sibling_page = guard.AsMut<LeafPage>();
   sibling_page->CleanTombstones();
 
-  Balance<LeafPage>(ctx, page, sibling_page, cur, sibling, isLeftPage, ret);
+  Balance<LeafPage>(page, sibling_page, cur, sibling, isLeftPage, ret);
 }
 
 /*****************************************************************************

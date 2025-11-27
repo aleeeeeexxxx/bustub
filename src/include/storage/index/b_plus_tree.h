@@ -32,7 +32,6 @@
 #include <vector>
 
 #include "common/config.h"
-#include "common/logger.h"
 #include "storage/index/index_iterator.h"
 #include "storage/page/b_plus_tree_header_page.h"
 #include "storage/page/b_plus_tree_internal_page.h"
@@ -141,7 +140,7 @@ class BPlusTree {
 
   auto Begin(const KeyType &key) -> INDEXITERATOR_TYPE;
 
-  void Print();
+  void Print(BufferPoolManager *bpm);
 
   void Draw(BufferPoolManager *bpm, const std::filesystem::path &outf);
 
@@ -229,8 +228,8 @@ class BPlusTree {
   }
 
   template <typename T>
-  auto Balance(const Context &ctx, T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id,
-               bool isLeftPage, DeleteRet &ret) -> void {
+  auto Balance(T *page, T *sibling_page, page_id_t cur_page_id, page_id_t sibling_page_id, bool isLeftPage,
+               DeleteRet &ret) -> void {
     if (sibling_page->CanLendAKey()) {
       return Redistribute<T>(page, sibling_page, cur_page_id, sibling_page_id, isLeftPage, ret);
     }

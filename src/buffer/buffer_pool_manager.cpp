@@ -17,9 +17,7 @@
 #include <vector>
 #include "buffer/arc_replacer.h"
 #include "common/config.h"
-#include "common/logger.h"
 #include "common/macros.h"
-#include "fmt/ranges.h"
 #include "storage/disk/disk_scheduler.h"
 #include "storage/page/page_guard.h"
 
@@ -328,8 +326,7 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
     return std::nullopt;
   }
 
-  auto guard = ReadPageGuard(page_id, frame.value(), replacer_, bpm_latch_, disk_scheduler_);
-  return std::optional<ReadPageGuard>(std::move(guard));
+  return ReadPageGuard(page_id, frame.value(), replacer_, bpm_latch_, disk_scheduler_);
 }
 
 /**
@@ -351,14 +348,6 @@ auto BufferPoolManager::WritePage(page_id_t page_id, AccessType access_type) -> 
 
   if (!guard_opt.has_value()) {
     fmt::println(stderr, "\n`CheckedWritePage` failed to bring in page {}\n", page_id);
-
-    std::vector<page_id_t> current_pages;
-    {
-      for (const auto &entry : frames_) {
-        current_pages.push_back(entry->page_id_);
-      }
-    }
-    fmt::println(stderr, "Current pages in buffer pool: {}", fmt::join(current_pages, ", "));
     std::abort();
   }
 
@@ -384,15 +373,6 @@ auto BufferPoolManager::ReadPage(page_id_t page_id, AccessType access_type) -> R
 
   if (!guard_opt.has_value()) {
     fmt::println(stderr, "\n`CheckedReadPage` failed to bring in page {}\n", page_id);
-
-    std::vector<page_id_t> current_pages;
-    {
-      for (const auto &entry : frames_) {
-        current_pages.push_back(entry->page_id_);
-      }
-    }
-    fmt::println(stderr, "Current pages in buffer pool: {}", fmt::join(current_pages, ", "));
-
     std::abort();
   }
 
