@@ -121,7 +121,7 @@ void LookupHelper(BPlusTree<GenericKey<8>, RID, GenericComparator<8>, Tombs> *tr
 }
 
 const size_t NUM_ITERS = 50;
-const size_t MIXTEST_NUM_ITERS = 1;
+const size_t MIXTEST_NUM_ITERS = 20;
 static const size_t BPM_SIZE = 50;
 
 template <ssize_t Tombs>
@@ -329,8 +329,6 @@ void DeleteTest2Call() {
 template <ssize_t Tombs>
 void MixTest1Call() {
   for (size_t iter = 0; iter < NUM_ITERS; iter++) {
-    LOG_DEBUG("===============MixTest1 Iteration %ld", iter);
-
     // create KeyComparator and index schema
     auto key_schema = ParseCreateStatement("a bigint");
     GenericComparator<8> comparator(key_schema.get());
@@ -358,8 +356,6 @@ void MixTest1Call() {
     }
     // Insert all the keys to delete
     InsertHelper(&tree, for_delete);
-
-    LOG_DEBUG("===============MixTest1 Iteration %ld =================", iter);
 
     auto insert_task = [&](int tid) { InsertHelper(&tree, for_insert); };
     auto delete_task = [&](int tid) { DeleteHelper(&tree, for_delete); };
