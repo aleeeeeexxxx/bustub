@@ -167,9 +167,7 @@ TEST(BPlusTreeTests, SequentialEdgeMixTest) {  // NOLINT
     }
 
     index_key.SetFromInteger(1);
-    tree.Print(bpm);
     tree.Remove(index_key);
-    tree.Print(bpm);
     deleted.push_back(1);
     inserted.erase(std::find(inserted.begin(), inserted.end(), 1));
     auto res = TreeValuesMatch<GenericKey<8>, RID, GenericComparator<8>, 2>(tree, inserted, deleted);
