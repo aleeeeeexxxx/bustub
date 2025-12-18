@@ -42,10 +42,7 @@ auto SeqScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<
                            size_t batch_size) -> bool {
   for (size_t i = 0; i < batch_size;) {
     if (itr_->IsEnd()) {
-      if (i == 0) {
-        return false;
-      }
-      return true;
+      return i != 0;
     }
 
     auto [meta, tuple] = itr_->GetTuple();
