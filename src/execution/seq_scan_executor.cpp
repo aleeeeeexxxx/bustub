@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/executors/seq_scan_executor.h"
+#include <memory>
 #include "common/macros.h"
+#include "storage/table/table_iterator.h"
 
 namespace bustub {
 
@@ -20,12 +22,15 @@ namespace bustub {
  * @param exec_ctx The executor context
  * @param plan The sequential scan plan to be executed
  */
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
+    : AbstractExecutor(exec_ctx), plan_(plan) {}
 
 /** Initialize the sequential scan */
-void SeqScanExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void SeqScanExecutor::Init() {
+  itr_ = std::make_unique<TableIterator>(
+    exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_->MakeIterator()
+  );
+}
 
 /**
  * Yield the next tuple batch from the seq scan.
@@ -36,7 +41,29 @@ void SeqScanExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  */
 auto SeqScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                            size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  for (size_t i = 0; i < batch_size;) {
+    if (itr_->IsEnd()) {
+      if (i == 0) {
+        return false;
+      }
+      return true;
+    }
+
+    auto [meta, tuple] = itr_->GetTuple();
+
+    ++(*itr_);
+
+    if (meta.is_deleted_) {
+      continue;
+    }
+
+    tuple_batch->push_back(tuple);
+    rid_batch->push_back(tuple.GetRid());
+
+    ++i;
+  }
+
+  return true;
 }
 
 }  // namespace bustub
