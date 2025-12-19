@@ -30,6 +30,7 @@
 #include "common/bustub_instance.h"
 #include "common/config.h"
 #include "common/exception.h"
+#include "common/logger.h"
 #include "common/util/string_util.h"
 #include "concurrency/lock_manager.h"
 #include "concurrency/transaction.h"
@@ -354,10 +355,12 @@ auto BusTubInstance::ExecuteSqlTxn(const std::string &sql, ResultWriter &writer,
     // Plan the query.
     bustub::Planner planner(*catalog_);
     planner.PlanQuery(*statement);
+    std::cout << "--- Initial Plan: ---\n" << planner.plan_->ToString(true) << std::endl;
 
     // Optimize the query.
     bustub::Optimizer optimizer(*catalog_, IsForceStarterRule());
     auto optimized_plan = optimizer.Optimize(planner.plan_);
+    std::cout << "--- Optimized Plan: ---\n" << optimized_plan->ToString(true) << std::endl;
 
     l.unlock();
 

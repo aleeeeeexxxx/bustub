@@ -10,8 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <cstddef>
 #include <memory>
 #include "common/macros.h"
+#include "storage/table/tuple.h"
+#include "type/value_factory.h"
 
 #include "execution/executors/insert_executor.h"
 
@@ -25,12 +28,10 @@ namespace bustub {
  */
 InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the insert */
-void InsertExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void InsertExecutor::Init() { child_executor_->Init(); }
 
 /**
  * Yield the number of rows inserted into the table.
@@ -44,7 +45,34 @@ void InsertExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  */
 auto InsertExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  auto oid = plan_->GetTableOid();
+  auto &table = exec_ctx_->GetCatalog()->GetTable(oid)->table_;
+
+  auto tupple_meta = TupleMeta{0, false};
+
+  std::vector<bustub::Tuple> child_tuples;
+  std::vector<bustub::RID> child_rids;
+
+  if (!child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+    return false;
+  }
+
+  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
+
+  for (const auto &tuple : child_tuples) {
+    auto rid = table->InsertTuple(tupple_meta, tuple, exec_ctx_->GetLockManager(), exec_ctx_->GetTransaction(), oid);
+    if (!rid.has_value()) {
+      throw bustub::Exception("InsertExecutor: failed to insert tuple");
+    }
+  }
+
+  return true;
+}
+
+auto InsertExecutor::GenerateResultTuple(size_t value) -> Tuple {
+  std::vector<Value> values;
+  values.emplace_back(ValueFactory::GetIntegerValue(static_cast<int32_t>(value)));
+  return Tuple(values, &GetOutputSchema());
 }
 
 }  // namespace bustub
