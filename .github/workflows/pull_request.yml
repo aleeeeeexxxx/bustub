@@ -1,8 +1,6 @@
 name: Bustub Test
 
-on:
-  push:
-    branches: [master]       
+on: 
   pull_request:
     branches: [master]
 
@@ -47,7 +45,7 @@ jobs:
 
       - name: Check Clang Tidy
         working-directory: ${{ github.workspace }}/build
-        run: make check-clang-tidy
+        run: make check-clang-tidy-diff
   
   unit-test:
     runs-on: ubuntu-latest
