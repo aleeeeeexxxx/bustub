@@ -94,6 +94,8 @@ class Schema {
 
   auto ToString(bool simplified = true) const -> std::string;
 
+  auto Equals(const Schema &other) const -> bool;
+
  private:
   /** Fixed-length column size, i.e. the number of bytes used by one tuple. */
   uint32_t length_;

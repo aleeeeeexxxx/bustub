@@ -40,17 +40,28 @@ void SeqScanExecutor::Init() {
  */
 auto SeqScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                            size_t batch_size) -> bool {
+  if (itr_->IsEnd()) {
+    return false;
+  }
+
   for (size_t i = 0; i < batch_size;) {
     if (itr_->IsEnd()) {
-      return i != 0;
+      return true;
     }
 
     auto [meta, tuple] = itr_->GetTuple();
-
     ++(*itr_);
 
     if (meta.is_deleted_) {
       continue;
+    }
+
+    if (plan_->filter_predicate_ != nullptr) {
+      auto value =
+          plan_->filter_predicate_->Evaluate(&tuple, exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->schema_);
+      if (value.IsNull() || !value.GetAs<bool>()) {
+        continue;
+      }
     }
 
     tuple_batch->push_back(tuple);
