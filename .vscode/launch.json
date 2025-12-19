@@ -20,7 +20,29 @@
         }
       ],
       "miDebuggerPath": "/usr/bin/gdb",
-      "preLaunchTask": "build_test", 
+      "preLaunchTask": "build_test",
+      "serverLaunchTimeout": 10000
+    },
+    {
+      "name": "debug sqllogictest",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin/bustub-sqllogictest",
+      "args": ["${workspaceFolder}/test/sql/${fileBasename}", "--verbose"],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": false
+        }
+      ],
+      "miDebuggerPath": "/usr/bin/gdb",
+      "preLaunchTask": "build_sqllogictest",
       "serverLaunchTimeout": 10000
     }
   ]
