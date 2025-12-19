@@ -86,16 +86,4 @@ auto Schema::ToString(bool simplified) const -> std::string {
   return os.str();
 }
 
-auto Schema::Equals(const Schema &other) const -> bool {
-  if (GetColumnCount() != other.GetColumnCount()) {
-    return false;
-  }
-  for (uint32_t i = 0; i < GetColumnCount(); i++) {
-    if (columns_[i].GetType() != other.columns_[i].GetType()) {
-      return false;
-    }
-  }
-  return true;
-}
-
 }  // namespace bustub
