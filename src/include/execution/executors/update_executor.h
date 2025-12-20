@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/rid.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/update_plan.h"
@@ -50,5 +51,10 @@ class UpdateExecutor : public AbstractExecutor {
 
   /** The child executor to obtain value from */
   std::unique_ptr<AbstractExecutor> child_executor_;
+
+  auto GetUpdatedTuple(const Tuple &old_tuple) -> Tuple;
+
+  auto UpdateIndex(const Tuple &old_tuple, const Tuple &new_tuple, const RID &old_rid, const RID &new_rid,
+                   const std::vector<std::shared_ptr<IndexInfo>> &indices) -> void;
 };
 }  // namespace bustub

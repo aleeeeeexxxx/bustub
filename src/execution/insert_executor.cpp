@@ -14,7 +14,6 @@
 #include <memory>
 #include "common/macros.h"
 #include "storage/table/tuple.h"
-#include "type/value_factory.h"
 
 #include "execution/executors/insert_executor.h"
 
@@ -67,12 +66,6 @@ auto InsertExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<b
   }
 
   return true;
-}
-
-auto InsertExecutor::GenerateResultTuple(size_t value) -> Tuple {
-  std::vector<Value> values;
-  values.emplace_back(ValueFactory::GetIntegerValue(static_cast<int32_t>(value)));
-  return Tuple(values, &GetOutputSchema());
 }
 
 }  // namespace bustub

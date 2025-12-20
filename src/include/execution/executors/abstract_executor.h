@@ -17,6 +17,8 @@
 #include "execution/executor_context.h"
 #include "storage/table/tuple.h"
 
+#include "type/value_factory.h"
+
 namespace bustub {
 class ExecutorContext;
 /**
@@ -56,8 +58,15 @@ class AbstractExecutor {
   /** @return The executor context in which this executor runs */
   auto GetExecutorContext() -> ExecutorContext * { return exec_ctx_; }
 
+  auto GenerateResultTuple(size_t value) -> Tuple {
+    std::vector<Value> values;
+    values.emplace_back(ValueFactory::GetIntegerValue(static_cast<int32_t>(value)));
+    return Tuple(values, &GetOutputSchema());
+  }
+
  protected:
   /** The executor context in which the executor runs */
   ExecutorContext *exec_ctx_;
 };
+
 }  // namespace bustub
