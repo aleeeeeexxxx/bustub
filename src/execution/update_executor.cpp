@@ -25,12 +25,10 @@ namespace bustub {
  */
 UpdateExecutor::UpdateExecutor(ExecutorContext *exec_ctx, const UpdatePlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the update */
-void UpdateExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void UpdateExecutor::Init() { child_executor_->Init(); }
 
 /**
  * Yield the number of rows updated in the table.
@@ -44,7 +42,56 @@ void UpdateExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  */
 auto UpdateExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  std::vector<bustub::Tuple> child_tuples;
+  std::vector<bustub::RID> child_rids;
+
+  if (!child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+    return false;
+  }
+
+  auto oid = plan_->GetTableOid();
+  auto table_info = exec_ctx_->GetCatalog()->GetTable(oid);
+  auto indices = exec_ctx_->GetCatalog()->GetTableIndexes(table_info->name_);
+
+  for (size_t i = 0; i < child_tuples.size(); ++i) {
+    const auto &old_tuple = child_tuples[i];
+    const auto &rid = child_rids[i];
+
+    table_info->table_->UpdateTupleMeta({0, true}, rid);
+
+    auto updated = GetUpdatedTuple(old_tuple);
+    auto new_rid = table_info->table_->InsertTuple({0, false}, updated);
+    BUSTUB_ENSURE(new_rid.has_value(), "Failed to insert new tuple");
+
+    UpdateIndex(old_tuple, updated, rid, new_rid.value(), indices, table_info->schema_);
+  }
+
+  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
+  return true;
+}
+
+auto UpdateExecutor::GetUpdatedTuple(const Tuple &old_tuple) -> Tuple {
+  // return Tuple(updated_values, &plan_->OutputSchema());
+  std::vector<Value> values;
+  auto schema = child_executor_->GetOutputSchema();
+
+  for (auto &expression : plan_->target_expressions_) {
+    auto col = expression->Evaluate(&old_tuple, schema);
+    values.push_back(col);
+  }
+
+  return Tuple{values, &schema};
+}
+
+auto UpdateExecutor::UpdateIndex(const Tuple &old_tuple, const Tuple &new_tuple, const RID &old_rid, const RID &new_rid,
+                                 const std::vector<std::shared_ptr<IndexInfo>> &indices, const Schema &schema) -> void {
+  for (auto &index : indices) {
+    index->index_->DeleteEntry(old_tuple.KeyFromTuple(schema, index->key_schema_, index->index_->GetKeyAttrs()),
+                               old_rid, exec_ctx_->GetTransaction());
+
+    index->index_->InsertEntry(new_tuple.KeyFromTuple(schema, index->key_schema_, index->index_->GetKeyAttrs()),
+                               new_rid, exec_ctx_->GetTransaction());
+  }
 }
 
 }  // namespace bustub

@@ -25,12 +25,10 @@ namespace bustub {
  */
 DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *plan,
                                std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the delete */
-void DeleteExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void DeleteExecutor::Init() { child_executor_->Init(); }
 
 /**
  * Yield the number of rows deleted from the table.
@@ -44,7 +42,33 @@ void DeleteExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  */
 auto DeleteExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  std::vector<bustub::Tuple> child_tuples;
+  std::vector<bustub::RID> child_rids;
+
+  if (!child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+    return false;
+  }
+
+  auto oid = plan_->GetTableOid();
+  auto table_info = exec_ctx_->GetCatalog()->GetTable(oid);
+  auto indices = exec_ctx_->GetCatalog()->GetTableIndexes(table_info->name_);
+
+  for (size_t i = 0; i < child_tuples.size(); ++i) {
+    const auto &old_tuple = child_tuples[i];
+    const auto &rid = child_rids[i];
+
+    table_info->table_->UpdateTupleMeta({0, true}, rid);
+
+    for (auto &index : indices) {
+      auto attrs = index->index_->GetKeyAttrs();
+
+      index->index_->DeleteEntry(old_tuple.KeyFromTuple(table_info->schema_, index->key_schema_, attrs), rid,
+                                 exec_ctx_->GetTransaction());
+    }
+  }
+
+  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
+  return true;
 }
 
 }  // namespace bustub
