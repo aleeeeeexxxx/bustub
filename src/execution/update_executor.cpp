@@ -57,15 +57,16 @@ auto UpdateExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<b
     const auto &old_tuple = child_tuples[i];
     const auto &rid = child_rids[i];
 
-    table_info_->table_->UpdateTupleMeta({0, true}, rid);
+    table_info->table_->UpdateTupleMeta({0, true}, rid);
 
     auto updated = GetUpdatedTuple(old_tuple);
-    auto new_rid = table_info_->table_->InsertTuple({0, false}, updated);
+    auto new_rid = table_info->table_->InsertTuple({0, false}, updated);
     BUSTUB_ENSURE(new_rid.has_value(), "Failed to insert new tuple");
 
-    UpdateIndex(old_tuple, updated, rid, new_rid.value(), indices);
+    UpdateIndex(old_tuple, updated, rid, new_rid.value(), indices, table_info->schema_);
   }
 
+  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
   return true;
 }
 
@@ -83,15 +84,13 @@ auto UpdateExecutor::GetUpdatedTuple(const Tuple &old_tuple) -> Tuple {
 }
 
 auto UpdateExecutor::UpdateIndex(const Tuple &old_tuple, const Tuple &new_tuple, const RID &old_rid, const RID &new_rid,
-                                 const std::vector<std::shared_ptr<IndexInfo>> &indices) -> void {
+                                 const std::vector<std::shared_ptr<IndexInfo>> &indices, const Schema &schema) -> void {
   for (auto &index : indices) {
-    index->index_->DeleteEntry(
-        old_tuple.KeyFromTuple(table_info_->schema_, index->key_schema_, index->index_->GetKeyAttrs()), old_rid,
-        exec_ctx_->GetTransaction());
+    index->index_->DeleteEntry(old_tuple.KeyFromTuple(schema, index->key_schema_, index->index_->GetKeyAttrs()),
+                               old_rid, exec_ctx_->GetTransaction());
 
-    index->index_->InsertEntry(
-        new_tuple.KeyFromTuple(table_info_->schema_, index->key_schema_, index->index_->GetKeyAttrs()), new_rid,
-        exec_ctx_->GetTransaction());
+    index->index_->InsertEntry(new_tuple.KeyFromTuple(schema, index->key_schema_, index->index_->GetKeyAttrs()),
+                               new_rid, exec_ctx_->GetTransaction());
   }
 }
 
