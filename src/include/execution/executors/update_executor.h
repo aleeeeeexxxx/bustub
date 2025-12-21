@@ -52,6 +52,6 @@ class UpdateExecutor : public AbstractExecutor {
   auto GetUpdatedTuple(const Tuple &old_tuple) -> Tuple;
 
   auto UpdateIndex(const Tuple &old_tuple, const Tuple &new_tuple, const RID &old_rid, const RID &new_rid,
-                   const std::vector<std::shared_ptr<IndexInfo>> &indices, const Schema& schema) -> void;
+                   const std::vector<std::shared_ptr<IndexInfo>> &indices, const Schema &schema) -> void;
 };
 }  // namespace bustub
