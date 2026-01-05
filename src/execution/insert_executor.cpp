@@ -45,7 +45,9 @@ void InsertExecutor::Init() { child_executor_->Init(); }
 auto InsertExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
   auto oid = plan_->GetTableOid();
-  auto &table = exec_ctx_->GetCatalog()->GetTable(oid)->table_;
+  auto table = exec_ctx_->GetCatalog()->GetTable(oid);
+  auto &table_heap = table->table_;
+  auto indices = exec_ctx_->GetCatalog()->GetTableIndexes(table->name_);
 
   auto tupple_meta = TupleMeta{0, false};
 
@@ -59,9 +61,14 @@ auto InsertExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<b
   tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
 
   for (const auto &tuple : child_tuples) {
-    auto rid = table->InsertTuple(tupple_meta, tuple, exec_ctx_->GetLockManager(), exec_ctx_->GetTransaction(), oid);
+    auto rid =
+        table_heap->InsertTuple(tupple_meta, tuple, exec_ctx_->GetLockManager(), exec_ctx_->GetTransaction(), oid);
     if (!rid.has_value()) {
       throw bustub::Exception("InsertExecutor: failed to insert tuple");
+    }
+    for (const auto &index : indices) {
+      auto key_tuple = tuple.KeyFromTuple(table->schema_, *index->index_->GetKeySchema(), index->index_->GetKeyAttrs());
+      index->index_->InsertEntry(key_tuple, rid.value(), exec_ctx_->GetTransaction());
     }
   }
 
