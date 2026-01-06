@@ -12,6 +12,7 @@
 
 #include <memory>
 #include "common/macros.h"
+#include "storage/table/tuple.h"
 
 #include "execution/executors/aggregation_executor.h"
 
@@ -25,12 +26,18 @@ namespace bustub {
  */
 AggregationExecutor::AggregationExecutor(ExecutorContext *exec_ctx, const AggregationPlanNode *plan,
                                          std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      child_executor_(std::move(child_executor)),
+      aht_(plan->aggregates_, plan->agg_types_) {}
 
 /** Initialize the aggregation */
-void AggregationExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void AggregationExecutor::Init() {
+  child_executor_->Init();
+
+  Aggregate();
+  aht_iterator_ = std::make_unique<SimpleAggregationHashTable::Iterator>(aht_.Begin());
+}
 
 /**
  * Yield the next tuple batch from the aggregation.
@@ -42,10 +49,45 @@ void AggregationExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."
 
 auto AggregationExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                                size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  if (*aht_iterator_ == aht_.End()) {
+    return false;
+  }
+
+  for (size_t i = 0; i < batch_size; i++) {
+    if (*aht_iterator_ == aht_.End()) {
+      break;
+    }
+
+    Tuple tuple{aht_iterator_->Val().aggregates_, &plan_->OutputSchema()};
+    tuple_batch->emplace_back(tuple);
+    ++(*aht_iterator_);
+  }
+
+  return true;
 }
 
 /** Do not use or remove this function; otherwise, you will get zero points. */
 auto AggregationExecutor::GetChildExecutor() const -> const AbstractExecutor * { return child_executor_.get(); }
+
+auto AggregationExecutor::Aggregate() -> void {
+  std::vector<bustub::Tuple> tuples;
+  std::vector<bustub::RID> rid_batch;
+
+  while (child_executor_->Next(&tuples, &rid_batch, BUSTUB_BATCH_SIZE)) {
+    for (const auto &tuple : tuples) {
+      AggregateKey key = MakeAggregateKey(&tuple);
+      AggregateValue val = MakeAggregateValue(&tuple);
+      aht_.InsertCombine(key, val);
+    }
+
+    tuples.clear();
+    rid_batch.clear();
+  }
+
+  if (aht_.Empty()) {
+    // Handle the case with no input tuples
+    aht_.Init(AggregateKey{});
+  }
+}
 
 }  // namespace bustub
