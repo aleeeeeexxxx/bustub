@@ -83,6 +83,11 @@ auto AggregationExecutor::Aggregate() -> void {
     tuples.clear();
     rid_batch.clear();
   }
+
+  if (aht_.Empty()) {
+    // Handle the case with no input tuples
+    aht_.Init(AggregateKey{});
+  }
 }
 
 }  // namespace bustub

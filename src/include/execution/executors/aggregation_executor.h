@@ -71,7 +71,7 @@ class SimpleAggregationHashTable {
   void CombineAggregateValues(AggregateValue *result, const AggregateValue &input) {
     for (uint32_t i = 0; i < agg_exprs_.size(); i++) {
       if (agg_types_[i] == AggregationType::CountStarAggregate) {
-        result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
+        result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
         continue;
       }
 
@@ -81,22 +81,26 @@ class SimpleAggregationHashTable {
       }
 
       if (result->aggregates_[i].IsNull()) {
-        result->aggregates_[i] = cur;
+        if (agg_types_[i] == AggregationType::CountAggregate) {
+          result->aggregates_[i] = ValueFactory::GetIntegerValue(1);
+        } else {
+          result->aggregates_[i] = cur;
+        }
         continue;
       }
 
       switch (agg_types_[i]) {
         case AggregationType::CountAggregate:
-          result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
+          result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
           break;
         case AggregationType::SumAggregate:
-          result->aggregates_[i] = result->aggregates_[i].Add(cur);
+          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Add(cur);
           break;
         case AggregationType::MinAggregate:
-          result->aggregates_[i] = result->aggregates_[i].Min(cur);
+          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Min(cur);
           break;
         case AggregationType::MaxAggregate:
-          result->aggregates_[i] = result->aggregates_[i].Max(cur);
+          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Max(cur);
           break;
         default:
           UNIMPLEMENTED("unknow agg type");
@@ -111,15 +115,19 @@ class SimpleAggregationHashTable {
    */
   void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
     if (ht_.count(agg_key) == 0) {
-      ht_.insert({agg_key, GenerateInitialAggregateValue()});
+      Init(agg_key);
     }
     CombineAggregateValues(&ht_[agg_key], agg_val);
   }
+
+  void Init(const AggregateKey &agg_key) { ht_.insert({agg_key, GenerateInitialAggregateValue()}); }
 
   /**
    * Clear the hash table
    */
   void Clear() { ht_.clear(); }
+
+  bool Empty() { return ht_.empty(); }
 
   /** An iterator over the aggregation hash table */
   class Iterator {
