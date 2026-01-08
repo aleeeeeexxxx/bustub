@@ -11,11 +11,29 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/executors/nested_loop_join_executor.h"
+#include <iostream>
 #include "binder/table_ref/bound_join_ref.h"
 #include "common/exception.h"
 #include "common/macros.h"
 
 namespace bustub {
+
+auto CreateMergedTuple(const Tuple &left_tuple, const Schema &left_schema, const Tuple *right_tuple,
+                       const Schema &right_schema, const Schema &output_schema) -> Tuple {
+  std::vector<Value> values;
+
+  for (size_t i = 0; i < left_schema.GetColumnCount(); i++) {
+    values.push_back(left_tuple.GetValue(&left_schema, static_cast<uint32_t>(i)));
+  }
+  for (size_t i = 0; i < right_schema.GetColumnCount(); i++) {
+    if (right_tuple) {
+      values.push_back(right_tuple->GetValue(&right_schema, static_cast<uint32_t>(i)));
+    } else {
+      values.push_back(ValueFactory::GetNullValueByType(right_schema.GetColumn(i).GetType()));
+    }
+  }
+  return Tuple(values, &output_schema);
+}
 
 /**
  * Construct a new NestedLoopJoinExecutor instance.
@@ -27,16 +45,24 @@ namespace bustub {
 NestedLoopJoinExecutor::NestedLoopJoinExecutor(ExecutorContext *exec_ctx, const NestedLoopJoinPlanNode *plan,
                                                std::unique_ptr<AbstractExecutor> &&left_executor,
                                                std::unique_ptr<AbstractExecutor> &&right_executor)
-    : AbstractExecutor(exec_ctx) {
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      left_executor_(std::move(left_executor)),
+      right_executor_(std::move(right_executor)) {
   if (plan->GetJoinType() != JoinType::LEFT && plan->GetJoinType() != JoinType::INNER) {
     // Note for Spring 2025: You ONLY need to implement left join and inner join.
     throw bustub::NotImplementedException(fmt::format("join type {} not supported", plan->GetJoinType()));
   }
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
 }
 
 /** Initialize the join */
-void NestedLoopJoinExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void NestedLoopJoinExecutor::Init() {
+  left_executor_->Init();
+  right_executor_->Init();
+
+  joined_ = false;
+  right_cache_.Reset();
+}
 
 /**
  * Yield the next tuple batch from the join.
@@ -47,7 +73,65 @@ void NestedLoopJoinExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementatio
  */
 auto NestedLoopJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                                   size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  tuple_batch->clear();
+  rid_batch->clear();
+
+  while (tuple_batch->size() < batch_size) {
+    if (!cur_left_tuple_) {
+      joined_ = false;
+      right_executor_->Init();
+      right_cache_.Reset();
+
+      if (!LoadNextLeftTuple()) {
+        break;
+      }
+    }
+
+    if (right_cache_.Empty()) {
+      right_cache_.Reset();
+
+      std::vector<RID> rids;
+      if (!right_executor_->Next(right_cache_.Raw(), &rids, BUSTUB_BATCH_SIZE)) {
+        if (joined_ == false && plan_->GetJoinType() == JoinType::LEFT) {
+          tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), nullptr,
+                                                      right_executor_->GetOutputSchema(), GetOutputSchema()));
+        }
+
+        cur_left_tuple_ = nullptr;
+      }
+      continue;
+    }
+
+    auto right = right_cache_.Pop();
+    if (plan_->predicate_
+            ->EvaluateJoin(cur_left_tuple_.get(), left_executor_->GetOutputSchema(), right,
+                           right_executor_->GetOutputSchema())
+            .GetAs<bool>()) {
+      joined_ = true;
+      tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), right,
+                                                  right_executor_->GetOutputSchema(), GetOutputSchema()));
+    }
+  }
+
+  for (size_t i = 0; i < tuple_batch->size(); ++i) {
+    rid_batch->emplace_back(RID{});
+  }
+  return tuple_batch->size() > 0;
+}
+
+auto NestedLoopJoinExecutor::LoadNextLeftTuple() -> bool {
+  cur_left_tuple_ = nullptr;
+
+  std::vector<RID> rid_batch;
+  std::vector<Tuple> tuple_batch;
+
+  auto has_next = left_executor_->Next(&tuple_batch, &rid_batch, 1);
+  if (!has_next) {
+    return false;
+  }
+
+  cur_left_tuple_ = std::make_unique<Tuple>(tuple_batch[0]);
+  return true;
 }
 
 }  // namespace bustub
