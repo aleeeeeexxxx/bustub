@@ -27,6 +27,8 @@ IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanP
     : AbstractExecutor(exec_ctx), plan_(plan) {}
 
 void IndexScanExecutor::Init() {
+  cur_idx_ = 0;
+
   if (!plan_->pred_keys_.empty()) {
     return;
   }

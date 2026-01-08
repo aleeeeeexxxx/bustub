@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/executors/nested_loop_join_executor.h"
+#include <iostream>
 #include "binder/table_ref/bound_join_ref.h"
 #include "common/exception.h"
 #include "common/macros.h"
@@ -59,14 +60,8 @@ void NestedLoopJoinExecutor::Init() {
   left_executor_->Init();
   right_executor_->Init();
 
-  std::vector<RID> rid_batch;
-  std::vector<Tuple> tuple_batch;
-  while (right_executor_->Next(&tuple_batch, &rid_batch, BUSTUB_BATCH_SIZE)) {
-    right_tuples_.insert(right_tuples_.end(), tuple_batch.begin(), tuple_batch.end());
-
-    tuple_batch.clear();
-    rid_batch.clear();
-  }
+  joined_ = false;
+  right_cache_.Reset();
 }
 
 /**
@@ -78,37 +73,49 @@ void NestedLoopJoinExecutor::Init() {
  */
 auto NestedLoopJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                                   size_t batch_size) -> bool {
-  if (cur_left_tuple_ == nullptr && !LoadNextLeftTuple()) {
-    return false;
-  }
+  tuple_batch->clear();
+  rid_batch->clear();
 
   while (tuple_batch->size() < batch_size) {
-    if (cur_right_idx_ >= right_tuples_.size()) {
-      if (plan_->GetJoinType() == JoinType::LEFT && !joined_) {
-        CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), nullptr,
-                          right_executor_->GetOutputSchema(), plan_->OutputSchema());
-      }
+    if (!cur_left_tuple_) {
+      joined_ = false;
+      right_executor_->Init();
+      right_cache_.Reset();
+
       if (!LoadNextLeftTuple()) {
         break;
       }
+    }
 
-      cur_right_idx_ = 0;
-      joined_ = false;
+    if (right_cache_.Empty()) {
+      right_cache_.Reset();
+
+      std::vector<RID> rids;
+      if (!right_executor_->Next(right_cache_.Raw(), &rids, BUSTUB_BATCH_SIZE)) {
+        if (joined_ == false && plan_->GetJoinType() == JoinType::LEFT) {
+          tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), nullptr,
+                                                      right_executor_->GetOutputSchema(), GetOutputSchema()));
+        }
+
+        cur_left_tuple_ = nullptr;
+      }
       continue;
     }
 
-    auto right_tuple = right_tuples_[cur_right_idx_++];
-
+    auto right = right_cache_.Pop();
     if (plan_->predicate_
-            ->EvaluateJoin(cur_left_tuple_.get(), left_executor_->GetOutputSchema(), &right_tuple,
+            ->EvaluateJoin(cur_left_tuple_.get(), left_executor_->GetOutputSchema(), right,
                            right_executor_->GetOutputSchema())
             .GetAs<bool>()) {
       joined_ = true;
-      CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), &right_tuple,
-                        right_executor_->GetOutputSchema(), plan_->OutputSchema());
-    }
+      tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), right,
+                                                  right_executor_->GetOutputSchema(), GetOutputSchema()));
+    };
   }
 
+  for (size_t i = 0; i < tuple_batch->size(); ++i) {
+    rid_batch->emplace_back(RID{});
+  }
   return tuple_batch->size() > 0;
 }
 
