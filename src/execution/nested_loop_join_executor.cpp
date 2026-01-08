@@ -110,7 +110,7 @@ auto NestedLoopJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::
       joined_ = true;
       tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), right,
                                                   right_executor_->GetOutputSchema(), GetOutputSchema()));
-    };
+    }
   }
 
   for (size_t i = 0; i < tuple_batch->size(); ++i) {
