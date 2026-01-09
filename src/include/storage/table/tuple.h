@@ -19,6 +19,7 @@
 #include "common/config.h"
 #include "common/rid.h"
 #include "type/value.h"
+#include "type/value_factory.h"
 
 namespace bustub {
 
@@ -114,5 +115,8 @@ class Tuple {
   RID rid_{};  // if pointing to the table heap, the rid is valid
   std::vector<char> data_;
 };
+
+auto CreateMergedTuple(const Tuple &left_tuple, const Schema &left_schema, const Tuple *right_tuple,
+                       const Schema &right_schema, const Schema &output_schema) -> Tuple;
 
 }  // namespace bustub
