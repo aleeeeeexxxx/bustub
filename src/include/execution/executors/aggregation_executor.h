@@ -114,13 +114,20 @@ class SimpleAggregationHashTable {
    * @param agg_val the value to be inserted
    */
   void InsertCombine(const AggregateKey &agg_key, const AggregateValue &agg_val) {
-    if (ht_.count(agg_key) == 0) {
-      Init(agg_key);
+    auto it = ht_.find(agg_key);
+    if (it == ht_.end()) {
+      it = ht_.insert({agg_key, GenerateInitialAggregateValue()}).first;
     }
-    CombineAggregateValues(&ht_[agg_key], agg_val);
+    CombineAggregateValues(&it->second, agg_val);
   }
 
-  void Init(const AggregateKey &agg_key) { ht_.insert({agg_key, GenerateInitialAggregateValue()}); }
+  void Init(const AggregateKey &agg_key) {
+    auto initial_value = GenerateInitialAggregateValue();
+    auto [itr, inserted] = ht_.insert({agg_key, initial_value});
+    if (!inserted) {
+      throw bustub::Exception("Failed to insert new aggregate key into hash table");
+    }
+  }
 
   /**
    * Clear the hash table
