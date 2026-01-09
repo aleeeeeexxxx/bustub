@@ -64,8 +64,8 @@ auto NestedIndexJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std:
       if (!meta.is_deleted_) {
         tuple_batch->emplace_back(CreateMergedTuple(*left, child_executor_->GetOutputSchema(), &__right_tuple,
                                                     right_schema, GetOutputSchema()));
+        continue;
       }
-      continue;
     }
 
     if (plan_->GetJoinType() == JoinType::LEFT) {
