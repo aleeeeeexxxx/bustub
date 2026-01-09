@@ -30,7 +30,10 @@ InsertExecutor::InsertExecutor(ExecutorContext *exec_ctx, const InsertPlanNode *
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the insert */
-void InsertExecutor::Init() { child_executor_->Init(); }
+void InsertExecutor::Init() {
+  child_executor_->Init();
+  end_ = false;
+}
 
 /**
  * Yield the number of rows inserted into the table.
@@ -44,34 +47,47 @@ void InsertExecutor::Init() { child_executor_->Init(); }
  */
 auto InsertExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
+  if (end_) {
+    return false;
+  }
+  end_ = true;
+
+  tuple_batch->clear();
+  rid_batch->clear();
+
   auto oid = plan_->GetTableOid();
   auto table = exec_ctx_->GetCatalog()->GetTable(oid);
   auto &table_heap = table->table_;
   auto indices = exec_ctx_->GetCatalog()->GetTableIndexes(table->name_);
 
   auto tupple_meta = TupleMeta{0, false};
+  size_t inserted_count = 0;
 
   std::vector<bustub::Tuple> child_tuples;
   std::vector<bustub::RID> child_rids;
 
-  if (!child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
-    return false;
+  while (child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+    for (const auto &tuple : child_tuples) {
+      auto rid =
+          table_heap->InsertTuple(tupple_meta, tuple, exec_ctx_->GetLockManager(), exec_ctx_->GetTransaction(), oid);
+      if (!rid.has_value()) {
+        throw bustub::Exception("InsertExecutor: failed to insert tuple");
+      }
+      for (const auto &index : indices) {
+        auto key_tuple =
+            tuple.KeyFromTuple(table->schema_, *index->index_->GetKeySchema(), index->index_->GetKeyAttrs());
+        index->index_->InsertEntry(key_tuple, rid.value(), exec_ctx_->GetTransaction());
+      }
+    }
+
+    inserted_count += child_tuples.size();
+
+    child_tuples.clear();
+    child_rids.clear();
   }
 
-  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
-
-  for (const auto &tuple : child_tuples) {
-    auto rid =
-        table_heap->InsertTuple(tupple_meta, tuple, exec_ctx_->GetLockManager(), exec_ctx_->GetTransaction(), oid);
-    if (!rid.has_value()) {
-      throw bustub::Exception("InsertExecutor: failed to insert tuple");
-    }
-    for (const auto &index : indices) {
-      auto key_tuple = tuple.KeyFromTuple(table->schema_, *index->index_->GetKeySchema(), index->index_->GetKeyAttrs());
-      index->index_->InsertEntry(key_tuple, rid.value(), exec_ctx_->GetTransaction());
-    }
-  }
-
+  tuple_batch->push_back(GenerateResultTuple(inserted_count));
+  rid_batch->emplace_back(RID{});
   return true;
 }
 
