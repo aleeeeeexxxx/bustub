@@ -11,12 +11,27 @@
 //===----------------------------------------------------------------------===//
 
 #include <memory>
+#include <vector>
 #include "common/macros.h"
 #include "storage/table/tuple.h"
+#include "type/value.h"
 
 #include "execution/executors/aggregation_executor.h"
 
 namespace bustub {
+
+auto GenerateAggregatedValues(SimpleAggregationHashTable::Iterator &itr, const Schema *schema) -> Tuple {
+  auto group_bys = itr.Key().group_bys_;
+  auto aggregates = itr.Val().aggregates_;
+
+  std::vector<Value> values;
+  values.reserve(group_bys.size() + aggregates.size());
+
+  values.insert(values.end(), group_bys.begin(), group_bys.end());
+  values.insert(values.end(), aggregates.begin(), aggregates.end());
+
+  return Tuple(values, schema);
+}
 
 /**
  * Construct a new AggregationExecutor instance.
@@ -58,8 +73,10 @@ auto AggregationExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vec
       break;
     }
 
-    Tuple tuple{aht_iterator_->Val().aggregates_, &plan_->OutputSchema()};
-    tuple_batch->emplace_back(tuple);
+    auto ret = GenerateAggregatedValues(*aht_iterator_, &plan_->OutputSchema());
+    tuple_batch->push_back(std::move(ret));
+    rid_batch->emplace_back(RID{});
+
     ++(*aht_iterator_);
   }
 
@@ -84,8 +101,7 @@ auto AggregationExecutor::Aggregate() -> void {
     rid_batch.clear();
   }
 
-  if (aht_.Empty()) {
-    // Handle the case with no input tuples
+  if (aht_.Empty() && plan_->GetGroupBys().empty()) {
     aht_.Init(AggregateKey{});
   }
 }
