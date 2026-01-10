@@ -87,6 +87,8 @@ auto AggregationExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vec
 auto AggregationExecutor::GetChildExecutor() const -> const AbstractExecutor * { return child_executor_.get(); }
 
 auto AggregationExecutor::Aggregate() -> void {
+  aht_.Clear();
+
   std::vector<bustub::Tuple> tuples;
   std::vector<bustub::RID> rid_batch;
 

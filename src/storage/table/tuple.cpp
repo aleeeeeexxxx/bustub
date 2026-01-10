@@ -26,6 +26,10 @@ namespace bustub {
  * constructor for creating a new tuple based on input value
  */
 Tuple::Tuple(std::vector<Value> values, const Schema *schema) {
+  if (values.size() != schema->GetColumnCount()) {
+    throw std::out_of_range("Number of values does not match schema");
+  }
+
   assert(values.size() == schema->GetColumnCount());
 
   // 1. Calculate the size of the tuple.
@@ -155,6 +159,23 @@ void Tuple::DeserializeFrom(const char *storage) {
   uint32_t size = *reinterpret_cast<const uint32_t *>(storage);
   this->data_.resize(size);
   memcpy(this->data_.data(), storage + sizeof(int32_t), size);
+}
+
+auto CreateMergedTuple(const Tuple &left_tuple, const Schema &left_schema, const Tuple *right_tuple,
+                       const Schema &right_schema, const Schema &output_schema) -> Tuple {
+  std::vector<Value> values;
+
+  for (size_t i = 0; i < left_schema.GetColumnCount(); i++) {
+    values.push_back(left_tuple.GetValue(&left_schema, static_cast<uint32_t>(i)));
+  }
+  for (size_t i = 0; i < right_schema.GetColumnCount(); i++) {
+    if (right_tuple) {
+      values.push_back(right_tuple->GetValue(&right_schema, static_cast<uint32_t>(i)));
+    } else {
+      values.push_back(ValueFactory::GetNullValueByType(right_schema.GetColumn(i).GetType()));
+    }
+  }
+  return Tuple(values, &output_schema);
 }
 
 }  // namespace bustub

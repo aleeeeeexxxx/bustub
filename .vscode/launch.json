@@ -28,7 +28,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/bustub-sqllogictest",
-      "args": ["${workspaceFolder}/test/sql/p3.03-update.slt", "--verbose"],
+      "args": ["${workspaceFolder}/test/sql/p3.10-simple-join.slt", "--verbose"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/build",
       "environment": [],

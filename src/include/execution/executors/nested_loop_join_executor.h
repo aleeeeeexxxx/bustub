@@ -22,26 +22,6 @@
 
 namespace bustub {
 
-class ReusableCache {
- public:
-  ReusableCache() = default;
-
-  auto Raw() -> std::vector<Tuple> * { return &cache_; }
-  auto Reset() -> void {
-    next_ = 0;
-    cache_.clear();
-  }
-  auto Empty() -> bool { return next_ >= cache_.size(); }
-  Tuple *Pop() {
-    BUSTUB_ASSERT(!Empty(), "Cache is empty");
-    return &cache_[next_++];
-  }
-
- private:
-  std::vector<Tuple> cache_;
-  size_t next_ = 0;
-};
-
 /**
  * NestedLoopJoinExecutor executes a nested-loop JOIN on two tables.
  */
