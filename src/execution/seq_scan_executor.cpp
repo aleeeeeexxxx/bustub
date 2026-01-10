@@ -40,6 +40,9 @@ void SeqScanExecutor::Init() {
  */
 auto SeqScanExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                            size_t batch_size) -> bool {
+  tuple_batch->clear();
+  rid_batch->clear();
+  
   for (size_t i = 0; i < batch_size;) {
     if (itr_->IsEnd()) {
       break;

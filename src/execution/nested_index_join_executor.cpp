@@ -12,6 +12,7 @@
 
 #include "execution/executors/nested_index_join_executor.h"
 #include "common/macros.h"
+#include "common/rid.h"
 
 namespace bustub {
 
@@ -72,6 +73,10 @@ auto NestedIndexJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std:
       tuple_batch->emplace_back(
           CreateMergedTuple(*left, child_executor_->GetOutputSchema(), nullptr, right_schema, GetOutputSchema()));
     }
+  }
+
+  for (size_t i = 0; i < tuple_batch->size(); i++) {
+    rid_batch->push_back(RID{});
   }
 
   return tuple_batch->size() > 0;
