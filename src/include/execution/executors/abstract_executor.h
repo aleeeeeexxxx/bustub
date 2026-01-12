@@ -25,6 +25,7 @@ class ReusableCache {
  public:
   ReusableCache() = default;
 
+  auto Push(const Tuple &tuple) -> void { cache_.push_back(tuple); }
   auto Raw() -> std::vector<Tuple> * { return &cache_; }
   auto Reset() -> void {
     next_ = 0;
