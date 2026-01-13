@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/macros.h"
 #include "storage/table/tuple.h"
 
 namespace bustub {
@@ -15,15 +16,33 @@ namespace bustub {
  */
 class IntermediateResultPage {
  public:
-  /**
-   * TODO(P3): Define and implement the methods for reading data from and writing data to the sort
-   * page. Feel free to add other helper methods.
-   */
+  auto CanInsert(const Tuple &tuple) -> bool {
+    return offset_ + tuple.GetSerializedSize() <= BUSTUB_PAGE_SIZE - sizeof(size_t);
+  }
+
+  auto InsertTuple(const Tuple &tuple) -> void {
+    tuple.SerializeTo(data_ + offset_);
+    offset_ += tuple.GetSerializedSize();
+  }
+
+  auto ToTuples(std::vector<Tuple> &tuples) const -> void {
+    size_t cur = 0;
+    Tuple temp;
+    while (cur < offset_) {
+      temp.DeserializeFrom(data_ + cur);
+
+      cur += temp.GetSerializedSize();
+      tuples.push_back(temp);
+    }
+
+    BUSTUB_ASSERT(cur == offset_, "Deserialized size does not match offset");
+  }
+
+  auto Reset() -> void { offset_ = 0; }
+
  private:
-  /**
-   * TODO(P3): Define the private members. You may want to have some necessary metadata for
-   * the sort page before the start of the actual data.
-   */
+  size_t offset_{0};
+  char data_[0];
 };
 
 }  // namespace bustub
