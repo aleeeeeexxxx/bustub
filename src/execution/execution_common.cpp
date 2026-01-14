@@ -11,7 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "execution/execution_common.h"
+#include <functional>
 
+#include "binder/bound_order_by.h"
 #include "catalog/catalog.h"
 #include "common/macros.h"
 #include "concurrency/transaction_manager.h"
@@ -22,16 +24,54 @@ namespace bustub {
 
 TupleComparator::TupleComparator(std::vector<OrderBy> order_bys) : order_bys_(std::move(order_bys)) {}
 
-/** TODO(P3): Implement the comparison method */
-auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool { return false; }
+auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool {
+  auto a_key = entry_a.first;
+  auto b_key = entry_b.first;
+
+  BUSTUB_ENSURE(a_key.size() == b_key.size(), "Sort keys must have the same size");
+
+  for (size_t i = 0; i < a_key.size(); i++) {
+    if (a_key[i].IsNull() && b_key[i].IsNull()) {
+      continue;
+    }
+
+    auto [order_type, null_order, _] = order_bys_[i];
+
+    if (order_type == OrderByType::ASC || order_type == OrderByType::DEFAULT) {
+      if (a_key[i].IsNull()) {
+        return null_order == OrderByNullType::NULLS_FIRST || null_order == OrderByNullType::DEFAULT;
+      }
+      if (b_key[i].IsNull()) {
+        return !(null_order == OrderByNullType::NULLS_FIRST || null_order == OrderByNullType::DEFAULT);
+      }
+      return a_key[i].CompareLessThan(b_key[i]) == CmpBool::CmpTrue;
+    }
+
+    if (order_type == OrderByType::DESC) {
+      if (b_key[i].IsNull()) {
+        return null_order == OrderByNullType::NULLS_LAST;
+      }
+      if (a_key[i].IsNull()) {
+        return null_order != OrderByNullType::NULLS_LAST;
+      }
+      return a_key[i].CompareGreaterThan(b_key[i]) == CmpBool::CmpTrue;
+    }
+  }
+
+  return false;
+}
 
 /**
  * Generate sort key for a tuple based on the order by expressions.
- *
- * TODO(P3): Implement this method.
  */
 auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, const Schema &schema) -> SortKey {
-  return {};
+  SortKey ret;
+
+  for (auto [_1, _2, expr] : order_bys) {
+    ret.push_back(expr->Evaluate(&tuple, schema));
+  }
+
+  return ret;
 }
 
 /**
