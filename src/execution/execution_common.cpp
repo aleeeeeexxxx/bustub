@@ -31,6 +31,9 @@ auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entr
   BUSTUB_ENSURE(a_key.size() == b_key.size(), "Sort keys must have the same size");
 
   for (size_t i = 0; i < a_key.size(); i++) {
+    if (a_key[i].CompareEquals(b_key[i]) == CmpBool::CmpTrue) {
+      continue;
+    }
     if (a_key[i].IsNull() && b_key[i].IsNull()) {
       continue;
     }
@@ -49,10 +52,10 @@ auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entr
 
     if (order_type == OrderByType::DESC) {
       if (b_key[i].IsNull()) {
-        return null_order == OrderByNullType::NULLS_LAST;
+        return null_order == OrderByNullType::NULLS_LAST || null_order == OrderByNullType::DEFAULT;
       }
       if (a_key[i].IsNull()) {
-        return null_order != OrderByNullType::NULLS_LAST;
+        return !(null_order == OrderByNullType::NULLS_LAST || null_order == OrderByNullType::DEFAULT);
       }
       return a_key[i].CompareGreaterThan(b_key[i]) == CmpBool::CmpTrue;
     }

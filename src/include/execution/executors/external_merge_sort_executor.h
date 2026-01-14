@@ -15,7 +15,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <utility>
+#include <list>
 #include <vector>
 #include "catalog/schema.h"
 #include "common/config.h"

@@ -70,7 +70,7 @@ auto Iterator::operator*() -> Tuple {
   return tuples_in_current_page_[offset_];
 }
 
-MergeSortRun::MergeSortRun(BufferPoolManager *bpm, Comparator &cmp_) : bpm_(bpm), cmp_(cmp_) {}
+MergeSortRun::MergeSortRun(BufferPoolManager *bpm, Comparator &cmp) : bpm_(bpm), cmp_(cmp) {}
 
 auto MergeSortRun::Sort(PageIdVector &pages) -> PageIdVector {
   BUSTUB_ENSURE(!pages.empty(), "Pages vector should not be empty");
@@ -98,6 +98,7 @@ auto MergeSortRun::Sort(PageIdVector &pages) -> PageIdVector {
 auto MergeSortRun::Merge(PageIdVector &left, PageIdVector &right) -> PageIdVector {
   PageIdVector result_pages;
   std::optional<WritePageGuard> guard;
+  IntermediateResultPage *page;
 
   std::list<page_id_t> free_list;
   Iterator::ReleasePageCallback callback = [&](page_id_t page_id) { free_list.push_back(page_id); };
@@ -106,11 +107,12 @@ auto MergeSortRun::Merge(PageIdVector &left, PageIdVector &right) -> PageIdVecto
   Iterator right_itr{right, bpm_, callback};
 
   while (!left_itr.End() || !right_itr.End()) {
-    Iterator &to_insert_itr = right_itr;
+    Iterator *to_insert_itr = &right_itr;
     if (right_itr.End() || (!left_itr.End() && cmp_(*left_itr, *right_itr))) {
-      to_insert_itr = left_itr;
+      to_insert_itr = &left_itr;
     }
-    Tuple to_insert = *to_insert_itr;
+
+    Tuple to_insert = **to_insert_itr;
 
     if (!guard.has_value()) {
       page_id_t page_id;
@@ -123,9 +125,11 @@ auto MergeSortRun::Merge(PageIdVector &left, PageIdVector &right) -> PageIdVecto
 
       result_pages.push_back(page_id);
       guard = bpm_->WritePage(page_id);
+
+      page = guard->AsMut<IntermediateResultPage>();
+      page->Reset();
     }
 
-    auto page = guard->AsMut<IntermediateResultPage>();
     if (page->CanInsert(to_insert)) {
       page->InsertTuple(to_insert);
       ++to_insert_itr;
@@ -166,13 +170,16 @@ void ExternalMergeSortExecutor<K>::Init() {
 
   auto page_ids = LoadTupleIntoDiskPage();
 
-  MergeSortRun::Comparator compare = [&](const Tuple &left, const Tuple &right) -> bool {
-    return cmp_(SortEntry{GenerateSortKey(left, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), left},
-                SortEntry{GenerateSortKey(right, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), right});
-  };
-  MergeSortRun merge_sort_run(exec_ctx_->GetBufferPoolManager(), compare);
+  if (page_ids.empty()) {
+    MergeSortRun::Comparator compare = [&](const Tuple &left, const Tuple &right) -> bool {
+      return cmp_(SortEntry{GenerateSortKey(left, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), left},
+                  SortEntry{GenerateSortKey(right, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), right});
+    };
+    MergeSortRun merge_sort_run(exec_ctx_->GetBufferPoolManager(), compare);
+    page_ids = merge_sort_run.Sort(page_ids);
+  }
 
-  itr_ = std::make_unique<Iterator>(merge_sort_run.Sort(page_ids), exec_ctx_->GetBufferPoolManager());
+  itr_ = std::make_unique<Iterator>(page_ids, exec_ctx_->GetBufferPoolManager());
 }
 
 template <size_t K>
