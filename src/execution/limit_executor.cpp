@@ -46,10 +46,11 @@ auto LimitExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bu
   }
 
   size_t to_fetch = std::min(static_cast<size_t>(left_), batch_size);
-  left_ -= static_cast<int>(to_fetch);
 
   if (!child_executor_->Next(tuple_batch, rid_batch, to_fetch)) {
     left_ = -1;
+  } else {
+    left_ -= static_cast<int>(tuple_batch->size());
   }
   return !tuple_batch->empty();
 }
