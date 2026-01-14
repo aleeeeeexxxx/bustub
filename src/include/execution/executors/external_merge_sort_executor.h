@@ -33,8 +33,7 @@ class Iterator {
   typedef std::function<void(page_id_t)> ReleasePageCallback;
 
  public:
-  explicit Iterator(std::vector<page_id_t> pages, BufferPoolManager *bpm,
-                    ReleasePageCallback release_page_callback);
+  explicit Iterator(std::vector<page_id_t> pages, BufferPoolManager *bpm, ReleasePageCallback release_page_callback);
 
   /**
    * Advance the iterator to the next tuple. If the current sort page is exhausted, move to the
