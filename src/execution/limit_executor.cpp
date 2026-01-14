@@ -23,12 +23,14 @@ namespace bustub {
  */
 LimitExecutor::LimitExecutor(ExecutorContext *exec_ctx, const LimitPlanNode *plan,
                              std::unique_ptr<AbstractExecutor> &&child_executor)
-    : AbstractExecutor(exec_ctx) {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
-}
+    : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 /** Initialize the limit */
-void LimitExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+void LimitExecutor::Init() {
+  child_executor_->Init();
+
+  left_ = static_cast<int>(plan_->GetLimit());
+}
 
 /**
  * Yield the next tuple batch from the limit.
@@ -39,7 +41,17 @@ void LimitExecutor::Init() { UNIMPLEMENTED("TODO(P3): Add implementation."); }
  */
 auto LimitExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                          size_t batch_size) -> bool {
-  UNIMPLEMENTED("TODO(P3): Add implementation.");
+  if (left_ <= 0) {
+    return false;
+  }
+
+  size_t to_fetch = std::min(static_cast<size_t>(left_), batch_size);
+  left_ -= static_cast<int>(to_fetch);
+
+  if (!child_executor_->Next(tuple_batch, rid_batch, to_fetch)) {
+    left_ = -1;
+  }
+  return !tuple_batch->empty();
 }
 
 }  // namespace bustub
