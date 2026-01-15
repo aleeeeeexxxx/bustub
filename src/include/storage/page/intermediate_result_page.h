@@ -87,7 +87,7 @@ class Iterator : IntermediateResult<T> {
  public:
   explicit Iterator(std::vector<page_id_t> pages, BufferPoolManager *bpm,
                     ReleasePageCallback release_page_callback = nullptr)
-      : release_page_callback_(release_page_callback), bpm_(bpm), pages_(pages.begin(), pages.end()){};
+      : release_page_callback_(release_page_callback), bpm_(bpm), pages_(pages.begin(), pages.end()) {}
 
   /**
    * Advance the iterator to the next tuple. If the current sort page is exhausted, move to the
