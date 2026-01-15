@@ -38,10 +38,10 @@ TEST(IntermediateResultPageTest, BasicInsertAndRetrieve) {
 
   // insert
   auto guard = bpm->WritePage(page_id);
-  auto page = guard.AsMut<IntermediateResultPage>();
+  auto page = guard.AsMut<IntermediateResultPage<Tuple>>();
   for (auto &t : expected) {
     EXPECT_EQ(page->CanInsert(t), true);
-    page->InsertTuple(t);
+    page->Insert(t);
   }
 
   // release the page
@@ -54,10 +54,10 @@ TEST(IntermediateResultPageTest, BasicInsertAndRetrieve) {
 
   // read back
   guard = bpm->WritePage(page_id);
-  page = guard.AsMut<IntermediateResultPage>();
+  page = guard.AsMut<IntermediateResultPage<Tuple>>();
 
   std::vector<Tuple> tuples;
-  page->ToTuples(tuples);
+  page->ReadAll(tuples);
 
   EXPECT_EQ(tuples.size(), 3);
 
@@ -76,7 +76,7 @@ TEST(IntermediateResultPageTest, Overflow) {
 
   // insert
   auto guard = bpm->WritePage(page_id);
-  auto page = guard.AsMut<IntermediateResultPage>();
+  auto page = guard.AsMut<IntermediateResultPage<Tuple>>();
 
   char buf[1000] = {1};
   Tuple t{RID{}, buf, 1000};
@@ -84,7 +84,7 @@ TEST(IntermediateResultPageTest, Overflow) {
   // ( 8192 - 8 ) / 1000 = 8.184
   for (size_t i = 1; i <= 8; i++) {
     EXPECT_TRUE(page->CanInsert(t));
-    page->InsertTuple(t);
+    page->Insert(t);
   }
 
   EXPECT_FALSE(page->CanInsert(t));
@@ -100,26 +100,26 @@ TEST(IntermediateResultPageTest, Reset) {
 
   // insert
   auto guard = bpm->WritePage(page_id);
-  auto page = guard.AsMut<IntermediateResultPage>();
+  auto page = guard.AsMut<IntermediateResultPage<Tuple>>();
 
   size_t cnt = 0;
   char buf[1000] = {1};
   Tuple t{RID{}, buf, 1000};
 
   while (page->CanInsert(t)) {
-    page->InsertTuple(t);
+    page->Insert(t);
     cnt++;
   }
 
   page->Reset();
 
   std::vector<Tuple> tuples;
-  page->ToTuples(tuples);
+  page->ReadAll(tuples);
   EXPECT_EQ(tuples.size(), 0);
 
   for (size_t i = 1; i <= cnt; i++) {
     EXPECT_TRUE(page->CanInsert(t));
-    page->InsertTuple(t);
+    page->Insert(t);
   }
 
   delete bpm;
