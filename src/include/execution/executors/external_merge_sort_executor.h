@@ -28,41 +28,6 @@
 
 namespace bustub {
 
-class Iterator {
- public:
-  typedef std::function<void(page_id_t)> ReleasePageCallback;
-
- public:
-  explicit Iterator(std::vector<page_id_t> pages, BufferPoolManager *bpm, ReleasePageCallback release_page_callback);
-
-  /**
-   * Advance the iterator to the next tuple. If the current sort page is exhausted, move to the
-   * next sort page.
-   */
-  auto operator++() -> Iterator &;
-
-  /**
-   * Dereference the iterator to get the current tuple in the sorted run that the iterator is
-   * pointing to.
-   */
-  auto operator*() -> Tuple;
-
-  auto End() -> bool { return cur_page_id_ == std::nullopt && pages_.empty(); }
-
-  auto Offset() const -> size_t { return offset_; }
-
- private:
-  ReleasePageCallback release_page_callback_;
-  BufferPoolManager *bpm_;
-
-  /** The sorted run that the iterator is iterating on. */
-  std::list<page_id_t> pages_;
-
-  std::optional<page_id_t> cur_page_id_{std::nullopt};
-  std::vector<Tuple> tuples_in_current_page_;
-  size_t offset_{0};
-};
-
 /**
  * A data structure that holds the sorted tuples as a run during external merge sort.
  * Tuples might be stored in multiple pages, and tuples are ordered both within one page
@@ -72,7 +37,7 @@ class MergeSortRun {
  public:
   typedef std::vector<page_id_t> PageIdVector;
 
-  MergeSortRun(BufferPoolManager *bpm, Comparator &cmp);
+  MergeSortRun(BufferPoolManager *bpm, TupleComparator &cmp);
 
   auto Sort(const PageIdVector &pages) -> PageIdVector;
 
@@ -86,7 +51,7 @@ class MergeSortRun {
    * deleting the sort pages when they are no longer needed.
    */
   BufferPoolManager *bpm_;
-  Comparator cmp_;
+  TupleComparator cmp_;
 };
 
 /**
@@ -120,7 +85,7 @@ class ExternalMergeSortExecutor : public AbstractExecutor {
 
   std::unique_ptr<AbstractExecutor> child_executor_;
 
-  std::unique_ptr<Iterator> itr_;
+  std::unique_ptr<Iterator<Tuple>> itr_;
 };
 
 }  // namespace bustub

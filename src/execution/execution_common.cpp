@@ -22,9 +22,10 @@
 
 namespace bustub {
 
-TupleComparator::TupleComparator(std::vector<OrderBy> order_bys) : order_bys_(std::move(order_bys)) {}
+TupleComparator::TupleComparator(std::vector<OrderBy> order_bys, const Schema &schema)
+    : order_bys_(std::move(order_bys)), schema_(schema) {}
 
-auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool {
+auto TupleComparator::compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool {
   auto a_key = entry_a.first;
   auto b_key = entry_b.first;
 
@@ -80,6 +81,12 @@ auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entr
   return false;
 }
 
+auto TupleComparator::operator()(const Tuple &entry_a, const Tuple &entry_b) const -> bool {
+  auto a_key = GenerateSortKey(entry_a, order_bys_, schema_);
+  auto b_key = GenerateSortKey(entry_b, order_bys_, schema_);
+  return compare({a_key, entry_a}, {b_key, entry_b});
+}
+
 /**
  * Generate sort key for a tuple based on the order by expressions.
  */
@@ -91,15 +98,6 @@ auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, 
   }
 
   return ret;
-}
-
-auto GetTupleComparator(const std::vector<OrderBy> &order_bys, const Schema &schema, TupleComparator &cmp)
-    -> Comparator {
-  return [&](const Tuple &a, const Tuple &b) -> bool {
-    auto a_key = GenerateSortKey(a, order_bys, schema);
-    auto b_key = GenerateSortKey(b, order_bys, schema);
-    return cmp({a_key, a}, {b_key, b});
-  };
 }
 
 /**

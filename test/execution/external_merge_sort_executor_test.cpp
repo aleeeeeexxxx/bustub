@@ -22,11 +22,11 @@ auto RunTest(BufferPoolManager *bpm, Schema &schema, std::vector<std::vector<Tup
   for (auto &run : data) {
     auto page_id = bpm->NewPage();
     auto guard = bpm->WritePage(page_id);
-    auto page = guard.AsMut<IntermediateResultPage>();
+    auto page = guard.AsMut<IntermediateResultPage<Tuple>>();
 
     for (auto &tuple : run) {
       EXPECT_TRUE(page->CanInsert(tuple));
-      page->InsertTuple(tuple);
+      page->Insert(tuple);
       total_cnt++;
     }
 
@@ -35,8 +35,7 @@ auto RunTest(BufferPoolManager *bpm, Schema &schema, std::vector<std::vector<Tup
   }
 
   // sort
-  TupleComparator tuple_cmp{order_bys};
-  auto cmp = GetTupleComparator(order_bys, schema, tuple_cmp);
+  TupleComparator cmp{order_bys, schema};
   MergeSortRun merge_sort_run(bpm, cmp);
 
   auto expected = merge_sort_run.Sort(page_ids);
@@ -46,9 +45,9 @@ auto RunTest(BufferPoolManager *bpm, Schema &schema, std::vector<std::vector<Tup
 
   for (auto page_id : expected) {
     auto guard = bpm->WritePage(page_id);
-    auto page = guard.AsMut<IntermediateResultPage>();
+    auto page = guard.AsMut<IntermediateResultPage<Tuple>>();
 
-    page->ToTuples(sorted_tuples);
+    page->ReadAll(sorted_tuples);
   }
 
   EXPECT_EQ(sorted_tuples.size(), total_cnt);
