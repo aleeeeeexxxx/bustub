@@ -14,8 +14,8 @@
 
 #include <cstddef>
 #include <functional>
-#include <memory>
 #include <list>
+#include <memory>
 #include <vector>
 #include "catalog/schema.h"
 #include "common/config.h"
@@ -49,6 +49,8 @@ class Iterator {
 
   auto End() -> bool { return cur_page_id_ == std::nullopt && pages_.empty(); }
 
+  auto Offset() const -> size_t { return offset_; }
+
  private:
   ReleasePageCallback release_page_callback_;
   BufferPoolManager *bpm_;
@@ -69,11 +71,10 @@ class Iterator {
 class MergeSortRun {
  public:
   typedef std::vector<page_id_t> PageIdVector;
-  typedef std::function<bool(const Tuple &, const Tuple &)> Comparator;
 
-  MergeSortRun(BufferPoolManager *bpm, Comparator &cmp_);
+  MergeSortRun(BufferPoolManager *bpm, Comparator &cmp);
 
-  auto Sort(PageIdVector &pages) -> PageIdVector;
+  auto Sort(const PageIdVector &pages) -> PageIdVector;
 
  private:
   auto SortPage(page_id_t page_id) -> void;

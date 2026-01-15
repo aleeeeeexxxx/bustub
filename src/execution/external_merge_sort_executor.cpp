@@ -72,7 +72,7 @@ auto Iterator::operator*() -> Tuple {
 
 MergeSortRun::MergeSortRun(BufferPoolManager *bpm, Comparator &cmp) : bpm_(bpm), cmp_(cmp) {}
 
-auto MergeSortRun::Sort(PageIdVector &pages) -> PageIdVector {
+auto MergeSortRun::Sort(const PageIdVector &pages) -> PageIdVector {
   BUSTUB_ENSURE(!pages.empty(), "Pages vector should not be empty");
 
   if (pages.size() == 1) {
@@ -132,7 +132,7 @@ auto MergeSortRun::Merge(PageIdVector &left, PageIdVector &right) -> PageIdVecto
 
     if (page->CanInsert(to_insert)) {
       page->InsertTuple(to_insert);
-      ++to_insert_itr;
+      ++(*to_insert_itr);
     } else {
       guard->Drop();
       guard = std::nullopt;
@@ -170,14 +170,24 @@ void ExternalMergeSortExecutor<K>::Init() {
 
   auto page_ids = LoadTupleIntoDiskPage();
 
-  if (page_ids.empty()) {
-    MergeSortRun::Comparator compare = [&](const Tuple &left, const Tuple &right) -> bool {
-      return cmp_(SortEntry{GenerateSortKey(left, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), left},
-                  SortEntry{GenerateSortKey(right, plan_->GetOrderBy(), child_executor_->GetOutputSchema()), right});
-    };
+  // for (auto page_id : page_ids) {
+  //   std::cout << "loaded page id: " << page_id << std::endl;
+
+  //   auto bpm = exec_ctx_->GetBufferPoolManager();
+  //   auto guard = bpm->WritePage(page_id);
+  //   auto page = reinterpret_cast<IntermediateResultPage *>(guard.GetDataMut());
+
+  //   page->PrintTuples(child_executor_->GetOutputSchema());
+  // }
+
+  if (!page_ids.empty()) {
+    auto compare = GetTupleComparator(plan_->GetOrderBy(), child_executor_->GetOutputSchema(), cmp_);
     MergeSortRun merge_sort_run(exec_ctx_->GetBufferPoolManager(), compare);
+
     page_ids = merge_sort_run.Sort(page_ids);
   }
+
+  std::cout << "ExternalMergeSortExecutor: sorted " << page_ids.size() << " pages." << std::endl;
 
   itr_ = std::make_unique<Iterator>(page_ids, exec_ctx_->GetBufferPoolManager());
 }
@@ -189,6 +199,8 @@ auto ExternalMergeSortExecutor<K>::LoadTupleIntoDiskPage() -> std::vector<page_i
   std::vector<RID> rids;
 
   WritePageGuard guard;
+  IntermediateResultPage *page;
+
   ReusableCache tuples;
 
   std::optional<page_id_t> cur = std::nullopt;
@@ -208,17 +220,23 @@ auto ExternalMergeSortExecutor<K>::LoadTupleIntoDiskPage() -> std::vector<page_i
     if (!cur.has_value()) {
       auto new_page_id = exec_ctx_->GetBufferPoolManager()->NewPage();
       page_ids.push_back(new_page_id);
+      cur = new_page_id;
+
+      std::cout << "ExternalMergeSortExecutor: created new page " << new_page_id << std::endl;
 
       guard = exec_ctx_->GetBufferPoolManager()->WritePage(new_page_id);
-      cur = new_page_id;
+      page = guard.AsMut<IntermediateResultPage>();
+      page->Reset();
     }
 
     auto tuple = tuples.Peek();
-    auto page = guard.AsMut<IntermediateResultPage>();
 
     if (page->CanInsert(tuple)) {
       page->InsertTuple(tuple);
       tuples.Next();
+
+      // std::cout << "ExternalMergeSortExecutor: inserted tuple into page " << cur.value() << " "
+      //           << tuple.ToString(&child_executor_->GetOutputSchema()) << std::endl;
     } else {
       guard.Drop();
       cur = std::nullopt;

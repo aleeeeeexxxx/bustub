@@ -31,32 +31,48 @@ auto TupleComparator::operator()(const SortEntry &entry_a, const SortEntry &entr
   BUSTUB_ENSURE(a_key.size() == b_key.size(), "Sort keys must have the same size");
 
   for (size_t i = 0; i < a_key.size(); i++) {
-    if (a_key[i].CompareEquals(b_key[i]) == CmpBool::CmpTrue) {
-      continue;
-    }
     if (a_key[i].IsNull() && b_key[i].IsNull()) {
       continue;
     }
 
     auto [order_type, null_order, _] = order_bys_[i];
 
-    if (order_type == OrderByType::ASC || order_type == OrderByType::DEFAULT) {
-      if (a_key[i].IsNull()) {
-        return null_order == OrderByNullType::NULLS_FIRST || null_order == OrderByNullType::DEFAULT;
+    //  You can extract sort keys from order_bys.
+    //
+    //  If the query does not include a sort direction in the ORDER BY clause
+    //  (i.e., ASC, DESC), then the sort mode will be default (which is ASC).
+    //
+    //  If the query does not specify a NULLS FIRST or NULLS LAST option in the ORDER BY clause,
+    //  then the placement of NULL values will use default,
+    //  which is NULLS FIRST for ascending order and NULLS LAST for descending order.
+
+    if (order_type == OrderByType::DEFAULT) {
+      order_type = OrderByType::ASC;
+    }
+    BUSTUB_ENSURE(order_type != OrderByType::INVALID, "invalid order type");
+
+    if (null_order == OrderByNullType::DEFAULT) {
+      if (order_type == OrderByType::ASC) {
+        null_order = OrderByNullType::NULLS_FIRST;
+      } else {
+        null_order = OrderByNullType::NULLS_LAST;
       }
-      if (b_key[i].IsNull()) {
-        return !(null_order == OrderByNullType::NULLS_FIRST || null_order == OrderByNullType::DEFAULT);
-      }
-      return a_key[i].CompareLessThan(b_key[i]) == CmpBool::CmpTrue;
     }
 
+    if (a_key[i].IsNull()) {
+      return null_order == OrderByNullType::NULLS_FIRST;
+    }
+    if (b_key[i].IsNull()) {
+      return null_order == OrderByNullType::NULLS_LAST;
+    }
+
+    if (a_key[i].CompareEquals(b_key[i]) == CmpBool::CmpTrue) {
+      continue;
+    }
+    if (order_type == OrderByType::ASC) {
+      return a_key[i].CompareLessThan(b_key[i]) == CmpBool::CmpTrue;
+    }
     if (order_type == OrderByType::DESC) {
-      if (b_key[i].IsNull()) {
-        return null_order == OrderByNullType::NULLS_LAST || null_order == OrderByNullType::DEFAULT;
-      }
-      if (a_key[i].IsNull()) {
-        return !(null_order == OrderByNullType::NULLS_LAST || null_order == OrderByNullType::DEFAULT);
-      }
       return a_key[i].CompareGreaterThan(b_key[i]) == CmpBool::CmpTrue;
     }
   }
@@ -75,6 +91,15 @@ auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, 
   }
 
   return ret;
+}
+
+auto GetTupleComparator(const std::vector<OrderBy> &order_bys, const Schema &schema, TupleComparator &cmp)
+    -> Comparator {
+  return [&](const Tuple &a, const Tuple &b) -> bool {
+    auto a_key = GenerateSortKey(a, order_bys, schema);
+    auto b_key = GenerateSortKey(b, order_bys, schema);
+    return cmp({a_key, a}, {b_key, b});
+  };
 }
 
 /**

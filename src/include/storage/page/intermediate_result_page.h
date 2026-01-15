@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/macros.h"
+#include "fmt/base.h"
 #include "storage/table/tuple.h"
 
 namespace bustub {
@@ -39,6 +40,17 @@ class IntermediateResultPage {
   }
 
   auto Reset() -> void { offset_ = 0; }
+
+  // for debug usage
+  auto PrintTuples(const Schema &schema) -> void {
+    std::vector<Tuple> tuples;
+    ToTuples(tuples);
+
+    fmt::println("IntermediateResultPage: total {} tuples, offset={}", tuples.size(), offset_);
+    for (auto &tuple : tuples) {
+      fmt::print("{}\n", tuple.ToString(&schema));
+    }
+  }
 
  private:
   size_t offset_{0};
