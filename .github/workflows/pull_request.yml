@@ -45,7 +45,7 @@ jobs:
 
       - name: Check Clang Tidy
         working-directory: ${{ github.workspace }}/build
-        run: make check-clang-tidy-diff
+        run: make check-clang-tidy
   
   unit-test:
     runs-on: ubuntu-latest
