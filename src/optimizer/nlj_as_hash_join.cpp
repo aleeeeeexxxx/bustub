@@ -38,7 +38,7 @@ struct JoinExprs {
 
   JoinExprs() = default;
 
-  auto Add(uint32_t index, AbstractExpressionRef expr) -> void {
+  auto Add(uint32_t index, const AbstractExpressionRef &expr) -> void {
     if (index == 0) {
       left_exprs_.push_back(expr);
     } else {
@@ -47,7 +47,7 @@ struct JoinExprs {
   }
 };
 
-auto parse(const AbstractExpressionRef &plan, JoinExprs &exprs) -> bool {
+auto Parse(const AbstractExpressionRef &plan, JoinExprs &exprs) -> bool {
   auto comp_expr = dynamic_cast<const ComparisonExpression *>(plan.get());
   if (comp_expr != nullptr) {
     if (comp_expr->comp_type_ == ComparisonType::Equal) {
@@ -69,7 +69,7 @@ auto parse(const AbstractExpressionRef &plan, JoinExprs &exprs) -> bool {
   auto logic_expr = dynamic_cast<const LogicExpression *>(plan.get());
   if (logic_expr != nullptr) {
     if (logic_expr->logic_type_ == LogicType::And) {
-      return parse(logic_expr->GetChildAt(0), exprs) && parse(logic_expr->GetChildAt(1), exprs);
+      return Parse(logic_expr->GetChildAt(0), exprs) && Parse(logic_expr->GetChildAt(1), exprs);
     }
   }
 
@@ -96,7 +96,7 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
 
     JoinExprs exprs;
 
-    if (parse(nlj_plan.Predicate(), exprs)) {
+    if (Parse(nlj_plan.Predicate(), exprs)) {
       auto hash_join_plan =
           std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, nlj_plan.GetLeftPlan(), nlj_plan.GetRightPlan(),
                                              exprs.left_exprs_, exprs.right_exprs_, nlj_plan.GetJoinType());

@@ -36,12 +36,12 @@ class ReusableCache {
 
   auto Empty() -> bool { return next_ >= cache_.size(); }
 
-  Tuple *Pop() {
+  auto Pop() -> Tuple * {
     BUSTUB_ASSERT(!Empty(), "Cache is empty");
     return &cache_[next_++];
   }
 
-  Tuple &Peek() {
+  auto Peek() -> Tuple & {
     BUSTUB_ASSERT(!Empty(), "Cache is empty");
     return cache_[next_];
   }
@@ -97,7 +97,7 @@ class AbstractExecutor {
   auto GenerateResultTuple(size_t value) -> Tuple {
     std::vector<Value> values;
     values.emplace_back(ValueFactory::GetIntegerValue(static_cast<int32_t>(value)));
-    return Tuple(values, &GetOutputSchema());
+    return {values, &GetOutputSchema()};
   }
 
  protected:

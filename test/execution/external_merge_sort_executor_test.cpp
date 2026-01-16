@@ -12,8 +12,9 @@
 
 namespace bustub {
 
-auto RunTest(BufferPoolManager *bpm, Schema &schema, std::vector<std::vector<Tuple>> data,
-             const std::vector<OrderBy> &order_bys, std::function<void(const std::vector<Tuple> &)> validate) -> void {
+auto RunTest(BufferPoolManager *bpm, Schema &schema, const std::vector<std::vector<Tuple>> &data,
+             const std::vector<OrderBy> &order_bys, const std::function<void(const std::vector<Tuple> &)> &validate)
+    -> void {
   size_t total_cnt = 0;
 
   // insert into page
@@ -386,6 +387,7 @@ TEST(MergeSortRunTest, SortMutipleColumns) {
       },
       [&](const std::vector<Tuple> &sorted_tuples) {
         std::vector<std::string> actual;
+        actual.reserve(sorted_tuples.size());
         for (auto &tuple : sorted_tuples) {
           actual.push_back(tuple.ToString(&schema));
         }

@@ -37,7 +37,7 @@ class TupleComparator {
   auto operator()(const Tuple &entry_a, const Tuple &entry_b) const -> bool;
 
  private:
-  auto compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool;
+  auto Compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool;
 
  private:
   std::vector<OrderBy> order_bys_;

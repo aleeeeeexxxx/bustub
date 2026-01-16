@@ -169,13 +169,13 @@ auto CreateMergedTuple(const Tuple &left_tuple, const Schema &left_schema, const
     values.push_back(left_tuple.GetValue(&left_schema, static_cast<uint32_t>(i)));
   }
   for (size_t i = 0; i < right_schema.GetColumnCount(); i++) {
-    if (right_tuple) {
+    if (right_tuple != nullptr) {
       values.push_back(right_tuple->GetValue(&right_schema, static_cast<uint32_t>(i)));
     } else {
       values.push_back(ValueFactory::GetNullValueByType(right_schema.GetColumn(i).GetType()));
     }
   }
-  return Tuple(values, &output_schema);
+  return {values, &output_schema};
 }
 
 }  // namespace bustub

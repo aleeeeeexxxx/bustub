@@ -22,10 +22,10 @@
 
 namespace bustub {
 
-TupleComparator::TupleComparator(std::vector<OrderBy> order_bys, const Schema &schema)
+TupleComparator::TupleComparator(std::vector<OrderBy> order_bys, const Schema &schema)  // NOLINT
     : order_bys_(std::move(order_bys)), schema_(schema) {}
 
-auto TupleComparator::compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool {
+auto TupleComparator::Compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool {
   auto a_key = entry_a.first;
   auto b_key = entry_b.first;
 
@@ -84,7 +84,7 @@ auto TupleComparator::compare(const SortEntry &entry_a, const SortEntry &entry_b
 auto TupleComparator::operator()(const Tuple &entry_a, const Tuple &entry_b) const -> bool {
   auto a_key = GenerateSortKey(entry_a, order_bys_, schema_);
   auto b_key = GenerateSortKey(entry_b, order_bys_, schema_);
-  return compare({a_key, entry_a}, {b_key, entry_b});
+  return Compare({a_key, entry_a}, {b_key, entry_b});
 }
 
 /**

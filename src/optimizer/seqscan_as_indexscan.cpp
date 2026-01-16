@@ -24,12 +24,13 @@
 
 namespace bustub {
 
-typedef std::unordered_map<uint32_t, std::vector<AbstractExpressionRef>> ColExprMap;
+using ColExprMap = std::unordered_map<uint32_t, std::vector<AbstractExpressionRef>>;
 
-auto parseComparisonChild(AbstractExpressionRef left, AbstractExpressionRef right, ColExprMap &result) -> bool {
+auto ParseComparisonChild(const AbstractExpressionRef &left, const AbstractExpressionRef &right, ColExprMap &result)
+    -> bool {
   auto left_col = dynamic_cast<ColumnValueExpression *>(left.get());
   auto right_const = dynamic_cast<ConstantValueExpression *>(right.get());
-  if (!left_col || !right_const) {
+  if (left_col == nullptr || right_const == nullptr) {
     return false;
   }
 
@@ -37,7 +38,7 @@ auto parseComparisonChild(AbstractExpressionRef left, AbstractExpressionRef righ
   return true;
 }
 
-auto parseComparison(ComparisonExpression *expr, ColExprMap &result) -> bool {
+auto ParseComparison(ComparisonExpression *expr, ColExprMap &result) -> bool {
   if (expr->comp_type_ != ComparisonType::Equal) {
     return false;
   }
@@ -45,19 +46,23 @@ auto parseComparison(ComparisonExpression *expr, ColExprMap &result) -> bool {
   auto left = expr->GetChildAt(0);
   auto right = expr->GetChildAt(1);
 
-  return parseComparisonChild(left, right, result) || parseComparisonChild(right, left, result);
+  auto try_both_orders = [&](const AbstractExpressionRef &a, const AbstractExpressionRef &b) {
+    return ParseComparisonChild(a, b, result) || ParseComparisonChild(b, a, result);
+  };
+
+  return try_both_orders(left, right);
 }
 
-auto parse(const AbstractExpressionRef &ref, ColExprMap &result) -> bool {
+auto Parse(const AbstractExpressionRef &ref, ColExprMap &result) -> bool {
   auto comp = dynamic_cast<ComparisonExpression *>(ref.get());
-  if (comp) {
-    return parseComparison(comp, result);
+  if (comp != nullptr) {
+    return ParseComparison(comp, result);
   }
 
   auto expr = dynamic_cast<LogicExpression *>(ref.get());
-  if (expr) {
+  if (expr != nullptr) {
     if (expr->logic_type_ == LogicType::Or) {
-      return parse(expr->GetChildAt(0), result) && parse(expr->GetChildAt(1), result);
+      return Parse(expr->GetChildAt(0), result) && Parse(expr->GetChildAt(1), result);
     }
   }
   return false;
@@ -83,7 +88,7 @@ auto Optimizer::OptimizeSeqScanAsIndexScan(const bustub::AbstractPlanNodeRef &pl
   }
 
   ColExprMap result;
-  if (!parse(seq_scan_plan.filter_predicate_, result) || result.size() != 1) {
+  if (!Parse(seq_scan_plan.filter_predicate_, result) || result.size() != 1) {
     return optimized_plan;
   }
 
@@ -92,7 +97,7 @@ auto Optimizer::OptimizeSeqScanAsIndexScan(const bustub::AbstractPlanNodeRef &pl
 
   for (auto &index : indices) {
     auto attr = index->index_->GetKeyAttrs();
-    BUSTUB_ASSERT(attr.size() >= 1, "Index must have at least one key attribute");
+    BUSTUB_ASSERT(!attr.empty(), "Index must have at least one key attribute");
 
     if (attr.size() > 1) {
       continue;
