@@ -94,6 +94,8 @@ class Tuple {
   // Get length of the tuple, including varchar length
   inline auto GetLength() const -> uint32_t { return data_.size(); }
 
+  auto GetSerializedSize() const -> uint32_t { return sizeof(int32_t) + static_cast<uint32_t>(data_.size()); }
+
   auto GetValue(const Schema *schema, uint32_t column_idx) const -> Value;
 
   auto KeyFromTuple(const Schema &schema, const Schema &key_schema, const std::vector<uint32_t> &key_attrs) const

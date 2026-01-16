@@ -13,9 +13,11 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
+#include <list>
 #include <memory>
-#include <utility>
 #include <vector>
+#include "catalog/schema.h"
 #include "common/config.h"
 #include "common/macros.h"
 #include "execution/execution_common.h"
@@ -33,72 +35,23 @@ namespace bustub {
  */
 class MergeSortRun {
  public:
-  MergeSortRun() = default;
-  MergeSortRun(std::vector<page_id_t> pages, BufferPoolManager *bpm) : pages_(std::move(pages)), bpm_(bpm) {}
+  typedef std::vector<page_id_t> PageIdVector;
 
-  auto GetPageCount() -> size_t { return pages_.size(); }
+  MergeSortRun(BufferPoolManager *bpm, TupleComparator &cmp);
 
-  /** Iterator for iterating on the sorted tuples in one run. */
-  class Iterator {
-    friend class MergeSortRun;
-
-   public:
-    Iterator() = default;
-
-    /**
-     * Advance the iterator to the next tuple. If the current sort page is exhausted, move to the
-     * next sort page.
-     */
-    auto operator++() -> Iterator & { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-    /**
-     * Dereference the iterator to get the current tuple in the sorted run that the iterator is
-     * pointing to.
-     */
-    auto operator*() -> Tuple { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-    /**
-     * Checks whether two iterators are pointing to the same tuple in the same sorted run.
-     */
-    auto operator==(const Iterator &other) const -> bool { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-    /**
-     * Checks whether two iterators are pointing to different tuples in a sorted run or iterating
-     * on different sorted runs.
-     */
-    auto operator!=(const Iterator &other) const -> bool { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-   private:
-    explicit Iterator(const MergeSortRun *run) : run_(run) {}
-
-    /** The sorted run that the iterator is iterating on. */
-    [[maybe_unused]] const MergeSortRun *run_;
-
-    /**
-     * TODO(P3): Add your own private members here. You may want something to record your current
-     * position in the sorted run. Also feel free to add additional constructors to initialize
-     * your private members.
-     */
-  };
-
-  /**
-   * Get an iterator pointing to the beginning of the sorted run, i.e. the first tuple.
-   */
-  auto Begin() -> Iterator { UNIMPLEMENTED("TODO(P3): Add implementation."); }
-
-  /**
-   * Get an iterator pointing to the end of the sorted run, i.e. the position after the last tuple.
-   */
-  auto End() -> Iterator { UNIMPLEMENTED("TODO(P3): Add implementation."); }
+  auto Sort(const PageIdVector &pages) -> PageIdVector;
 
  private:
-  /** The page IDs of the sort pages that store the sorted tuples. */
-  std::vector<page_id_t> pages_;
+  auto SortPage(page_id_t page_id) -> void;
+  auto Merge(PageIdVector &left, PageIdVector &right) -> PageIdVector;
+
+ private:
   /**
    * The buffer pool manager used to read sort pages. The buffer pool manager is responsible for
    * deleting the sort pages when they are no longer needed.
    */
-  [[maybe_unused]] BufferPoolManager *bpm_;
+  BufferPoolManager *bpm_;
+  TupleComparator cmp_;
 };
 
 /**
@@ -121,13 +74,18 @@ class ExternalMergeSortExecutor : public AbstractExecutor {
   auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); }
 
  private:
+  auto LoadTupleIntoDiskPage() -> std::vector<page_id_t>;
+
+ private:
   /** The sort plan node to be executed */
   const SortPlanNode *plan_;
 
   /** Compares tuples based on the order-bys */
   TupleComparator cmp_;
 
-  /** TODO(P3): You will want to add your own private members here. */
+  std::unique_ptr<AbstractExecutor> child_executor_;
+
+  std::unique_ptr<Iterator<Tuple>> itr_;
 };
 
 }  // namespace bustub

@@ -32,12 +32,16 @@ using SortEntry = std::pair<SortKey, Tuple>;
 /** The Tuple Comparator provides a comparison function for SortEntry */
 class TupleComparator {
  public:
-  explicit TupleComparator(std::vector<OrderBy> order_bys);
+  explicit TupleComparator(std::vector<OrderBy> order_bys, const Schema &schema);
 
-  auto operator()(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool;
+  auto operator()(const Tuple &entry_a, const Tuple &entry_b) const -> bool;
+
+ private:
+  auto compare(const SortEntry &entry_a, const SortEntry &entry_b) const -> bool;
 
  private:
   std::vector<OrderBy> order_bys_;
+  Schema schema_;
 };
 
 auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, const Schema &schema) -> SortKey;

@@ -26,15 +26,29 @@ class ReusableCache {
   ReusableCache() = default;
 
   auto Push(const Tuple &tuple) -> void { cache_.push_back(tuple); }
+
   auto Raw() -> std::vector<Tuple> * { return &cache_; }
+
   auto Reset() -> void {
     next_ = 0;
     cache_.clear();
   }
+
   auto Empty() -> bool { return next_ >= cache_.size(); }
+
   Tuple *Pop() {
     BUSTUB_ASSERT(!Empty(), "Cache is empty");
     return &cache_[next_++];
+  }
+
+  Tuple &Peek() {
+    BUSTUB_ASSERT(!Empty(), "Cache is empty");
+    return cache_[next_];
+  }
+
+  auto Next() -> void {
+    BUSTUB_ASSERT(!Empty(), "Cache is empty");
+    next_++;
   }
 
  private:
