@@ -35,7 +35,7 @@ namespace bustub {
  */
 class MergeSortRun {
  public:
-  typedef std::vector<page_id_t> PageIdVector;
+  using PageIdVector = std::vector<page_id_t>;
 
   MergeSortRun(BufferPoolManager *bpm, TupleComparator &cmp);
 

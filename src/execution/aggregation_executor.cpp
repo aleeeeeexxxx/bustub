@@ -30,7 +30,7 @@ auto GenerateAggregatedValues(SimpleAggregationHashTable::Iterator &itr, const S
   values.insert(values.end(), group_bys.begin(), group_bys.end());
   values.insert(values.end(), aggregates.begin(), aggregates.end());
 
-  return Tuple(values, schema);
+  return {values, schema};
 }
 
 /**

@@ -15,33 +15,33 @@
 namespace bustub {
 
 template <typename, typename = void>
-struct serializable : std::false_type {};
+struct Serializable : std::false_type {};
 
 template <typename T>
-struct serializable<T, std::void_t<decltype(std::declval<T>().SerializeTo(static_cast<char *>(nullptr)))>>
+struct Serializable<T, std::void_t<decltype(std::declval<T>().SerializeTo(static_cast<char *>(nullptr)))>>
     : std::true_type {};
 
 template <typename, typename = void>
-struct deserializable : std::false_type {};
+struct Deserializable : std::false_type {};
 
 template <typename T>
-struct deserializable<T, std::void_t<decltype(std::declval<T>().DeserializeFrom(static_cast<char *>(nullptr)))>>
+struct Deserializable<T, std::void_t<decltype(std::declval<T>().DeserializeFrom(static_cast<char *>(nullptr)))>>
     : std::true_type {};
 
 template <typename, typename = void>
-struct countable : std::false_type {};
+struct Countable : std::false_type {};
 
 template <typename T>
-struct countable<T, std::void_t<decltype(std::declval<T>().GetSerializedSize())>>
+struct Countable<T, std::void_t<decltype(std::declval<T>().GetSerializedSize())>>
     : std::is_same<decltype(std::declval<T>().GetSerializedSize()), uint32_t> {};
 
 template <typename T>
-struct is_intermedate_result
-    : std::bool_constant<serializable<T>::value && deserializable<T>::value && countable<T>::value> {};
+struct IsIntermediateResult
+    : std::bool_constant<Serializable<T>::value && Deserializable<T>::value && Countable<T>::value> {};
 
 template <typename T>
 class IntermediateResult {
-  static_assert(is_intermedate_result<T>::value, "T must be IntermediateResult");
+  static_assert(IsIntermediateResult<T>::value, "T must be IntermediateResult");
 };
 /**
  * Page to hold the intermediate data for external merge sort and hash join.
@@ -82,12 +82,12 @@ class IntermediateResultPage : IntermediateResult<T> {
 template <typename T>
 class Iterator : IntermediateResult<T> {
  public:
-  typedef std::function<void(page_id_t)> ReleasePageCallback;
+  using ReleasePageCallback = std::function<void(page_id_t)>;
 
  public:
   explicit Iterator(std::vector<page_id_t> pages, BufferPoolManager *bpm,
                     ReleasePageCallback release_page_callback = nullptr)
-      : release_page_callback_(release_page_callback), bpm_(bpm), pages_(pages.begin(), pages.end()) {}
+      : release_page_callback_(std::move(release_page_callback)), bpm_(bpm), pages_(pages.begin(), pages.end()) {}
 
   /**
    * Advance the iterator to the next tuple. If the current sort page is exhausted, move to the
@@ -115,7 +115,7 @@ class Iterator : IntermediateResult<T> {
     auto page = guard.As<IntermediateResultPage<T>>();
 
     page->ReadAll(tuples_in_current_page_);
-    BUSTUB_ENSURE(tuples_in_current_page_.size() > 0, "Page should contain at least one tuple");
+    BUSTUB_ENSURE(!tuples_in_current_page_.empty() > 0, "Page should contain at least one tuple");
 
     if (release_page_callback_) {
       release_page_callback_(cur_page_id_.value());

@@ -35,7 +35,9 @@ auto MergeSortRun::Sort(const PageIdVector &pages) -> PageIdVector {
     return pages;
   }
 
-  PageIdVector left, right;
+  PageIdVector left;
+  PageIdVector right;
+
   for (size_t i = 0; i < pages.size(); i++) {
     if (i < pages.size() / 2) {
       left.push_back(pages[i]);

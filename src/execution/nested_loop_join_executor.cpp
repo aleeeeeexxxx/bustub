@@ -74,7 +74,7 @@ auto NestedLoopJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::
 
       std::vector<RID> rids;
       if (!right_executor_->Next(right_cache_.Raw(), &rids, BUSTUB_BATCH_SIZE)) {
-        if (joined_ == false && plan_->GetJoinType() == JoinType::LEFT) {
+        if (!joined_ && plan_->GetJoinType() == JoinType::LEFT) {
           tuple_batch->emplace_back(CreateMergedTuple(*cur_left_tuple_, left_executor_->GetOutputSchema(), nullptr,
                                                       right_executor_->GetOutputSchema(), GetOutputSchema()));
         }
@@ -98,7 +98,7 @@ auto NestedLoopJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::
   for (size_t i = 0; i < tuple_batch->size(); ++i) {
     rid_batch->emplace_back(RID{});
   }
-  return tuple_batch->size() > 0;
+  return !tuple_batch->empty();
 }
 
 auto NestedLoopJoinExecutor::LoadNextLeftTuple() -> bool {

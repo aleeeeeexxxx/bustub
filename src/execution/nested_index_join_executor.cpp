@@ -79,7 +79,7 @@ auto NestedIndexJoinExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std:
     rid_batch->push_back(RID{});
   }
 
-  return tuple_batch->size() > 0;
+  return !tuple_batch->empty();
 }
 
 }  // namespace bustub
