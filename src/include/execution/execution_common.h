@@ -46,6 +46,8 @@ class TupleComparator {
 
 auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, const Schema &schema) -> SortKey;
 
+auto IsSameSortKey(const SortKey &a, const SortKey &b) -> bool;
+
 /**
  * Above are all you need for P3.
  * You can ignore the remaining part of this file until P4.

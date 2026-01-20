@@ -100,6 +100,27 @@ auto GenerateSortKey(const Tuple &tuple, const std::vector<OrderBy> &order_bys, 
   return ret;
 }
 
+auto IsSameSortKey(const SortKey &a, const SortKey &b) -> bool {
+  if (a.size() != b.size()) {
+    return false;
+  }
+
+
+  for (size_t i = 0; i < a.size(); i++) {
+    if (a[i].IsNull() && b[i].IsNull()) {
+      continue;
+    }
+
+    if (a[i].CompareEquals(b[i]) == CmpBool::CmpTrue) {
+      continue;
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Above are all you need for P3.
  * You can ignore the remaining part of this file until P4.

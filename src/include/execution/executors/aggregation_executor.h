@@ -94,16 +94,16 @@ class SimpleAggregationHashTable {
           result->aggregates_[i] = result->aggregates_[i].Add(ValueFactory::GetIntegerValue(1));
           break;
         case AggregationType::SumAggregate:
-          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Add(cur);
+          result->aggregates_[i] = result->aggregates_[i].Add(cur);
           break;
         case AggregationType::MinAggregate:
-          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Min(cur);
+          result->aggregates_[i] = result->aggregates_[i].Min(cur);
           break;
         case AggregationType::MaxAggregate:
-          result->aggregates_[i] = result->aggregates_[i] = result->aggregates_[i].Max(cur);
+          result->aggregates_[i] = result->aggregates_[i].Max(cur);
           break;
         default:
-          UNIMPLEMENTED("unknow agg type");
+          UNIMPLEMENTED("unknown agg type");
       }
     }
   }
