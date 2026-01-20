@@ -15,10 +15,16 @@
 #include <memory>
 #include <vector>
 
+#include <utility>
+#include "execution/execution_common.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/plans/window_plan.h"
+#include "storage/index/extendible_hash_table_index.h"
 #include "storage/table/tuple.h"
+#include "type/type_id.h"
+#include "type/value.h"
+#include "type/value_factory.h"
 
 namespace bustub {
 
@@ -74,10 +80,54 @@ class WindowFunctionExecutor : public AbstractExecutor {
   auto GetOutputSchema() const -> const Schema & override { return plan_->OutputSchema(); }
 
  private:
+  auto LoadChildTuples() -> std::vector<Tuple>;
+  auto AggregateWindows() -> void;
+  auto AggregateWindow(const std::vector<Tuple> &tuples, WindowFunctionPlanNode::WindowFunction &func)
+      -> std::vector<Value>;
+  auto AggregatePartition(const std::vector<std::pair<size_t, Tuple>> &partition, std::vector<Value> &results,
+                          WindowFunctionPlanNode::WindowFunction &func, Schema &schema) -> void;
+  auto AggregateRankPartition(const std::vector<std::pair<size_t, Tuple>> &partition, std::vector<Value> &results,
+                              WindowFunctionPlanNode::WindowFunction &func, Schema &schema) -> void;
+
+  auto SortTuplesIfWindowFuncHasOrderBy(std::vector<Tuple> &tuples) -> void;
+
+ private:
   /** The window aggregation plan node to be executed */
   const WindowFunctionPlanNode *plan_;
 
   /** The child executor from which tuples are obtained */
   std::unique_ptr<AbstractExecutor> child_executor_;
+
+  ReusableCache results_;
 };
+
+class WindowFunctionValue {
+ public:
+  explicit WindowFunctionValue(WindowFunctionType type);
+
+  auto Calculate(const Value &value) -> void;
+
+  auto GetCurrentValue() const -> Value { return cur_; };
+
+ private:
+  WindowFunctionType type_;
+  Value cur_;
+};
+
+class RankValue {
+ public:
+  RankValue() = default;
+
+  auto Calculate(const SortKey &values) -> void;
+
+  auto GetCurrentValue() const -> Value { return cur_; };
+
+ private:
+  Value cur_{TypeId::INTEGER, 0};
+
+  SortKey last_value_;
+
+  int rank_{0};
+};
+
 }  // namespace bustub
