@@ -138,6 +138,7 @@ auto WindowFunctionExecutor::AggregateWindow(const std::vector<Tuple> &tuples,
     }
 
     std::vector<Value> key_values;
+    key_values.reserve(func.partition_by_.size());
     for (const auto &part_expr : func.partition_by_) {
       key_values.push_back(part_expr->Evaluate(&tuple, schema));
     }
