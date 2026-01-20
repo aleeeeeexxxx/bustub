@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 
+#include <utility>
 #include "execution/execution_common.h"
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
@@ -102,7 +103,7 @@ class WindowFunctionExecutor : public AbstractExecutor {
 
 class WindowFunctionValue {
  public:
-  WindowFunctionValue(WindowFunctionType type);
+  explicit WindowFunctionValue(WindowFunctionType type);
 
   auto Calculate(const Value &value) -> void;
 
