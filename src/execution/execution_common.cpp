@@ -105,7 +105,6 @@ auto IsSameSortKey(const SortKey &a, const SortKey &b) -> bool {
     return false;
   }
 
-
   for (size_t i = 0; i < a.size(); i++) {
     if (a[i].IsNull() && b[i].IsNull()) {
       continue;
