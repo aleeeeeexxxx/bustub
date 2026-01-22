@@ -8,7 +8,8 @@
 | 0 | C++ Primer | ✅ Done | 2025-09-12 |
 | 1 | Buffer Pool Manager | ✅ Done | 2025-10-17 |
 | 2 | Database Index | ✅ Done | 2025-11-27 |
-| 3 | Query Execution | 🛠 In Progress | — |
+| 3 | Query Execution | ✅ Done | 2026-01-22 |
+| 3 | Concurrency Control | 🛠 In Progress | — |
 
 ---
 

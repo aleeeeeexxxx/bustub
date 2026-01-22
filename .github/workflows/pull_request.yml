@@ -74,3 +74,31 @@ jobs:
       - name: Check Tests
         working-directory: ${{ github.workspace }}/build
         run: make build-tests && make check-public-ci-tests
+  
+  sql-logic-test:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - name: Print GitHub Event
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
+
+      - name: Install Dependencies
+        run: sudo bash ./build_support/packages.sh -y
+
+      - name: Configure CMake
+        run: |
+          CC=/usr/bin/gcc \
+          CXX=/usr/bin/g++ \
+          cmake -B ${{ github.workspace }}/build \
+                -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+                -DCLANG_FORMAT_BIN=/usr/bin/clang-format-15 \
+                -DCLANG_TIDY_BIN=/usr/bin/clang-tidy-15
+
+      - name: Check Tests
+        working-directory: ${{ github.workspace }}/build
+        run: make test-p3

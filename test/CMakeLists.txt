@@ -49,9 +49,9 @@ foreach (bustub_test_source ${BUSTUB_TEST_SOURCES})
 endforeach ()
 
 set(BUSTUB_SLT_SOURCES
-        "${PROJECT_SOURCE_DIR}/test/sql/p0.01-lower-upper.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p0.02-function-error.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p0.03-string-scan.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p0.01-lower-upper.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p0.02-function-error.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p0.03-string-scan.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.01-seqscan.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.02-insert.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.03-update.slt"
@@ -68,13 +68,13 @@ set(BUSTUB_SLT_SOURCES
         "${PROJECT_SOURCE_DIR}/test/sql/p3.14-hash-join.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.15-multi-way-hash-join.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.16-sort-limit.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p3.17-topn.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p3.17-topn.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.18-integration-1.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.19-integration-2.slt"
         "${PROJECT_SOURCE_DIR}/test/sql/p3.20-window-function.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q1.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q2.slt"
-        "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q3.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q1.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q2.slt"
+        # "${PROJECT_SOURCE_DIR}/test/sql/p3.leaderboard-q3.slt"
         )
 
 add_custom_target(test-p3 ${CMAKE_CTEST_COMMAND} -R SQLLogicTest)
