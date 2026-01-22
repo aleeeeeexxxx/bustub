@@ -42,31 +42,45 @@ void UpdateExecutor::Init() { child_executor_->Init(); }
  */
 auto UpdateExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                           size_t batch_size) -> bool {
-  std::vector<bustub::Tuple> child_tuples;
-  std::vector<bustub::RID> child_rids;
+  tuple_batch->clear();
+  rid_batch->clear();
 
-  if (!child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+  if (end_) {
     return false;
   }
+  end_ = true;
+
+  std::vector<bustub::Tuple> child_tuples;
+  std::vector<bustub::RID> child_rids;
 
   auto oid = plan_->GetTableOid();
   auto table_info = exec_ctx_->GetCatalog()->GetTable(oid);
   auto indices = exec_ctx_->GetCatalog()->GetTableIndexes(table_info->name_);
 
-  for (size_t i = 0; i < child_tuples.size(); ++i) {
-    const auto &old_tuple = child_tuples[i];
-    const auto &rid = child_rids[i];
+  size_t updated = 0;
 
-    table_info->table_->UpdateTupleMeta({0, true}, rid);
+  while (child_executor_->Next(&child_tuples, &child_rids, batch_size)) {
+    for (size_t i = 0; i < child_tuples.size(); ++i) {
+      const auto &old_tuple = child_tuples[i];
+      const auto &rid = child_rids[i];
 
-    auto updated = GetUpdatedTuple(old_tuple);
-    auto new_rid = table_info->table_->InsertTuple({0, false}, updated);
-    BUSTUB_ENSURE(new_rid.has_value(), "Failed to insert new tuple");
+      table_info->table_->UpdateTupleMeta({0, true}, rid);
 
-    UpdateIndex(old_tuple, updated, rid, new_rid.value(), indices, table_info->schema_);
+      auto updated = GetUpdatedTuple(old_tuple);
+      auto new_rid = table_info->table_->InsertTuple({0, false}, updated);
+      BUSTUB_ENSURE(new_rid.has_value(), "Failed to insert new tuple");
+
+      UpdateIndex(old_tuple, updated, rid, new_rid.value(), indices, table_info->schema_);
+    }
+
+    updated += child_tuples.size();
+
+    child_tuples.clear();
+    child_rids.clear();
   }
 
-  tuple_batch->push_back(GenerateResultTuple(child_tuples.size()));
+  tuple_batch->push_back(GenerateResultTuple(updated));
+  rid_batch->push_back(RID{});
   return true;
 }
 
