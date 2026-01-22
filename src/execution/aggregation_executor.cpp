@@ -10,6 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <iostream>
 #include <memory>
 #include <vector>
 #include "common/macros.h"
@@ -64,6 +65,9 @@ void AggregationExecutor::Init() {
 
 auto AggregationExecutor::Next(std::vector<bustub::Tuple> *tuple_batch, std::vector<bustub::RID> *rid_batch,
                                size_t batch_size) -> bool {
+  tuple_batch->clear();
+  rid_batch->clear();
+
   if (*aht_iterator_ == aht_.End()) {
     return false;
   }

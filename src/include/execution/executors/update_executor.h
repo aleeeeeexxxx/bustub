@@ -45,6 +45,7 @@ class UpdateExecutor : public AbstractExecutor {
  private:
   /** The update plan node to be executed */
   const UpdatePlanNode *plan_;
+  bool end_{false};
 
   /** The child executor to obtain value from */
   std::unique_ptr<AbstractExecutor> child_executor_;
